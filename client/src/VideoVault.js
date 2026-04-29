@@ -50,13 +50,15 @@ const VideoVault = ({ user }) => {
                     {activeVideo ? (
                         <>
                             <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '15px', background: '#000', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                                <iframe 
-                                    src={`https://youtube.com{activeVideo.videoId}?modestbranding=1&rel=0&showinfo=0`}
-                                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                                    frameBorder="0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowFullScreen>
-                                </iframe>
+                           <iframe 
+    title="Maro Academy Tutorial" // 👈 ADD THIS LINE HERE!
+    src={`https://youtube.com{activeVideo.videoId}?modestbranding=1&rel=0&showinfo=0`}
+    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+    frameBorder="0" 
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+    allowFullScreen>
+</iframe>
+
                             </div>
                             <div style={{ marginTop: '25px', background: '#222', padding: '25px', borderRadius: '12px', borderLeft: '5px solid #ffd700' }}>
                                 <h1 style={{ margin: '0 0 10px 0', fontSize: '1.8rem' }}>{activeVideo.title}</h1>
