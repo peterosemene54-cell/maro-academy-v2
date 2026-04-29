@@ -35,3 +35,25 @@ app.get('/', (req, res) => res.send("MARO ACADEMY SERVER IS LIVE! 🚀"));
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🦾 Server running on ${PORT}`));
+
+// ✅ NEW: ROUTE TO FETCH ALL STUDENTS FOR ADMIN
+app.get('/api/students', async (req, res) => {
+    try {
+        const students = await User.find();
+        res.json(students);
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
+// ✅ NEW: ROUTE TO APPROVE/DISAPPROVE A STUDENT
+app.put('/api/students/:id/approve', async (req, res) => {
+    try {
+        const student = await User.findById(req.params.id);
+        student.isPaid = !student.isPaid; // This flips the status (True/False)
+        await student.save();
+        res.json({ message: "Status Updated!", isPaid: student.isPaid });
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
