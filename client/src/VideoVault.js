@@ -25,106 +25,130 @@ const VideoVault = ({ user }) => {
   if (loading) return (
     <div style={{ background: '#000', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ffd700', fontFamily: 'Arial' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🔐</div>
-        <div style={{ letterSpacing: '3px', fontWeight: 'bold' }}>VERIFYING PREMIUM ACCESS...</div>
+        <div style={{ fontSize: '3rem', marginBottom: '20px', animation: 'pulse 2s infinite' }}>🔐</div>
+        <div style={{ letterSpacing: '5px', fontWeight: '900', fontSize: '0.8rem' }}>DECRYPTING PREMIUM VAULT...</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ background: '#050505', minHeight: '100vh', color: '#fff', fontFamily: 'Segoe UI, Arial, sans-serif' }}>
+    <div style={{ background: '#050505', minHeight: '100vh', color: '#fff', fontFamily: 'Segoe UI, Roboto, Helvetica, Arial, sans-serif' }}>
       
-      {/* 🔝 MIGHTY TOP NAVIGATION */}
-      <div style={{ padding: '25px 50px', background: 'rgba(0,0,0,0.8)', borderBottom: '2px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backdropFilter: 'blur(10px)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{ background: '#ffd700', width: '40px', height: '40px', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#000', fontWeight: 'bold' }}>M</div>
-            <h2 style={{ color: '#ffd700', margin: 0, letterSpacing: '4px', fontSize: '1.2rem', fontWeight: '900' }}>MARO ACADEMY VAULT</h2>
+      {/* 🔝 MIGHTY PRESIDENTIAL NAVIGATION */}
+      <div style={{ padding: '30px 60px', background: 'rgba(0,0,0,0.95)', borderBottom: '3px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backdropFilter: 'blur(20px)', sticky: 'top', zIndex: 1000 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ background: 'linear-gradient(145deg, #ffd700, #b8860b)', width: '50px', height: '50px', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#000', fontWeight: '900', fontSize: '1.5rem', boxShadow: '0 0 20px rgba(255,215,0,0.3)' }}>M</div>
+            <div>
+                <h2 style={{ color: '#ffd700', margin: 0, letterSpacing: '5px', fontSize: '1.4rem', fontWeight: '900', textShadow: '0 0 10px rgba(255,215,0,0.3)' }}>MARO ACADEMY</h2>
+                <div style={{ fontSize: '0.6rem', color: '#555', letterSpacing: '3px', fontWeight: 'bold' }}>OFFICIAL PREMIUM PORTAL</div>
+            </div>
         </div>
-        <div style={{ background: '#111', padding: '10px 20px', borderRadius: '50px', border: '1px solid #333', fontSize: '0.85rem' }}>
-          🎓 STUDENT: <span style={{ color: '#ffd700', fontWeight: 'bold' }}>{user?.name?.toUpperCase()}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ background: '#111', padding: '12px 25px', borderRadius: '100px', border: '1px solid #333', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '8px', height: '8px', background: '#00ff00', borderRadius: '50%', boxShadow: '0 0 10px #00ff00' }}></div>
+                SECURE SESSION: <span style={{ color: '#ffd700', fontWeight: '900' }}>{user?.name?.toUpperCase()}</span>
+            </div>
+            <button onClick={() => navigate('/login')} style={{ background: 'transparent', border: '1px solid #444', color: '#888', padding: '10px 20px', borderRadius: '50px', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 'bold' }}>LOGOUT</button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', padding: '40px', gap: '40px', maxWidth: '1600px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', padding: '50px', gap: '50px', maxWidth: '1800px', margin: '0 auto' }}>
         
-        {/* 🎬 THE ARMORED CINEMA SECTION */}
+        {/* 🎬 THE ARMORED CINEMA ENGINE */}
         {activeVideo ? (
-          <div style={{ flex: '2.8', minWidth: '350px' }}>
+          <div style={{ flex: '3', minWidth: '400px' }}>
             
             <div style={{ 
                 position: 'relative', width: '100%', paddingBottom: '56.25%', 
-                overflow: 'hidden', borderRadius: '30px', background: '#000',
-                border: '8px solid #111', boxShadow: '0 50px 100px rgba(0,0,0,0.9)' 
+                overflow: 'hidden', borderRadius: '35px', background: '#000',
+                border: '10px solid #111', boxShadow: '0 60px 120px rgba(0,0,0,1)' 
             }}>
                 
-                {/* 🛡️ TOP SECURITY MASK (Kills Title & Share) */}
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '80px', zIndex: 20, background: 'linear-gradient(to bottom, #000 60%, transparent 100%)', pointerEvents: 'none' }}></div>
+                {/* 🛡️ SECURITY LAYER 1: TOP GRADIENT MASK (Kills Title/Share) */}
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '90px', zIndex: 20, background: 'linear-gradient(to bottom, #000 75%, transparent 100%)', pointerEvents: 'none' }}></div>
                 
-                {/* 🚀 THE GHOST PLAYER (Deep Overscan -15% kills logos) */}
+                {/* 🚀 THE GHOST PLAYER ENGINE (Optimized Clarity + Logo Burial) */}
                 <iframe 
                     title="Maro Academy Ultra Premium"
-                    src={`https://youtube.com/embed/${activeVideo.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=0`}
-                    style={{ position: 'absolute', top: '-15%', left: '-2%', width: '104%', height: '135%', border: 'none' }}
+                    src={`https://youtube.com/embed/${activeVideo.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=0&vq=hd1080`}
+                    style={{ 
+                        position: 'absolute', 
+                        top: '-9%', // 🛡️ Optimized "Sweet Spot" to hide title but keep clarity
+                        left: '-1%', 
+                        width: '102%', 
+                        height: '118%', // 🛡️ Optimized to bury corner logo without blurring your face
+                        border: 'none',
+                        filter: 'contrast(1.08) brightness(1.03) saturate(1.1)' // ✨ INDUSTRIAL SHARPNESS FILTER
+                    }}
                     allow="autoplay; encrypted-media"
                 ></iframe>
 
-                {/* 💎 MARO ACADEMY PRO BADGE (Hologram Style) */}
+                {/* 💎 THE MARO PRO HOLOGRAM (Authority Badge) */}
                 <div style={{ 
-                    position: 'absolute', top: '30px', right: '30px', zIndex: 25, 
-                    background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
-                    padding: '8px 22px', borderRadius: '100px', border: '1px solid rgba(255,215,0,0.4)',
-                    boxShadow: '0 0 20px rgba(255,215,0,0.2)' 
+                    position: 'absolute', top: '35px', right: '35px', zIndex: 25, 
+                    background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(15px)',
+                    padding: '10px 25px', borderRadius: '100px', border: '1px solid rgba(255,215,0,0.5)',
+                    boxShadow: '0 0 30px rgba(255,215,0,0.2)' 
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '8px', height: '8px', background: '#ffd700', borderRadius: '50%', boxShadow: '0 0 10px #ffd700' }}></div>
-                        <span style={{ color: '#ffd700', fontSize: '0.7rem', fontWeight: '900', letterSpacing: '3px' }}>MARO ACADEMY PRO</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '10px', height: '10px', background: '#ffd700', borderRadius: '50%', boxShadow: '0 0 15px #ffd700' }}></div>
+                        <span style={{ color: '#ffd700', fontSize: '0.8rem', fontWeight: '900', letterSpacing: '4px' }}>MARO ACADEMY PRO</span>
                     </div>
                 </div>
 
-                {/* 🔒 BOTTOM SECURITY MASK (Kills corner logo) */}
-                <div style={{ position: 'absolute', bottom: 0, right: 0, width: '100%', height: '65px', zIndex: 20, background: 'black', pointerEvents: 'none' }}></div>
+                {/* 🔒 SECURITY LAYER 2: BOTTOM LOGO CHOKE (Kills corner YouTube icon) */}
+                <div style={{ position: 'absolute', bottom: 0, right: 0, width: '100%', height: '60px', zIndex: 20, background: 'black', pointerEvents: 'none' }}></div>
             </div>
 
-            {/* 📝 PREMIUM INFO CARD */}
-            <div style={{ marginTop: '35px', background: 'linear-gradient(145deg, #0f0f0f, #050505)', padding: '40px', borderRadius: '25px', borderLeft: '8px solid #ffd700', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-                <h1 style={{ margin: '0 0 15px 0', fontSize: '2.5rem', fontWeight: '900', color: '#fff', letterSpacing: '-1px' }}>{activeVideo.title}</h1>
-                <p style={{ color: '#777', fontSize: '1.2rem', lineHeight: '1.8', maxWidth: '800px' }}>{activeVideo.description}</p>
-                <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
-                    <span style={{ padding: '6px 15px', background: '#222', borderRadius: '5px', fontSize: '0.8rem', color: '#ffd700' }}>✓ 4K ULTRA HD</span>
-                    <span style={{ padding: '6px 15px', background: '#222', borderRadius: '5px', fontSize: '0.8rem', color: '#ffd700' }}>✓ PREMIUM AUDIO</span>
+            {/* 💡 THE OGA INSTRUCTION (Audio Fix) */}
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                <span style={{ color: '#ffd700', fontSize: '0.9rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite' }}> 🔊 OGA, TAP VIDEO TO UNMUTE AND LEARN! </span>
+            </div>
+
+            {/* 📝 PREMIUM INFO CARD (Heavy Industrial Design) */}
+            <div style={{ marginTop: '40px', background: 'linear-gradient(160deg, #0d0d0d 0%, #050505 100%)', padding: '45px', borderRadius: '30px', borderLeft: '10px solid #ffd700', boxShadow: '0 30px 60px rgba(0,0,0,0.5)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '-20px', right: '-20px', fontSize: '8rem', color: 'rgba(255,215,0,0.03)', fontWeight: '900' }}>MATH</div>
+                <h1 style={{ margin: '0 0 20px 0', fontSize: '2.8rem', fontWeight: '900', color: '#fff', letterSpacing: '-1.5px', textTransform: 'uppercase' }}>{activeVideo.title}</h1>
+                <p style={{ color: '#888', fontSize: '1.25rem', lineHeight: '1.9', maxWidth: '900px', margin: 0 }}>{activeVideo.description}</p>
+                <div style={{ marginTop: '30px', display: 'flex', gap: '20px' }}>
+                    <div style={{ border: '1px solid #333', padding: '10px 20px', borderRadius: '10px', fontSize: '0.7rem', color: '#ffd700', fontWeight: 'bold' }}>HD 1080P SOURCE</div>
+                    <div style={{ border: '1px solid #333', padding: '10px 20px', borderRadius: '10px', fontSize: '0.7rem', color: '#ffd700', fontWeight: 'bold' }}>ENCRYPTED STREAM</div>
                 </div>
             </div>
           </div>
         ) : (
-          <div style={{ flex: '2.8', textAlign: 'center', padding: '150px', background: '#0a0a0a', borderRadius: '30px', border: '2px dashed #222' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📚</div>
-            <h2 style={{ color: '#444' }}>SELECT A LESSON TO BEGIN YOUR MASTERY</h2>
+          <div style={{ flex: '3', textAlign: 'center', padding: '200px', background: '#080808', borderRadius: '40px', border: '2px dashed #1a1a1a' }}>
+            <h2 style={{ color: '#333', letterSpacing: '5px' }}>SELECT A LESSON FROM THE CURRICULUM</h2>
           </div>
         )}
 
-        {/* 📚 THE SIDEBAR (Premium Lesson List) */}
-        <div style={{ flex: '1', minWidth: '320px' }}>
-          <div style={{ background: '#0a0a0a', padding: '30px', borderRadius: '30px', border: '1px solid #1a1a1a', position: 'sticky', top: '40px' }}>
-            <h3 style={{ color: '#ffd700', marginBottom: '30px', fontSize: '1rem', letterSpacing: '3px', fontWeight: '900', textAlign: 'center' }}>YOUR CURRICULUM</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {/* 📚 THE SIDEBAR (High-End Lesson Matrix) */}
+        <div style={{ flex: '1.1', minWidth: '350px' }}>
+          <div style={{ background: '#0a0a0a', padding: '40px', borderRadius: '35px', border: '1px solid #1a1a1a', position: 'sticky', top: '50px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ color: '#ffd700', marginBottom: '35px', fontSize: '1.1rem', letterSpacing: '5px', fontWeight: '900', textAlign: 'center', borderBottom: '1px solid #222', paddingBottom: '20px' }}>CURRICULUM</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {videos.map((video, index) => (
                 <div 
                     key={video._id} 
                     onClick={() => setActiveVideo(video)}
                     style={{ 
-                    padding: '22px', borderRadius: '15px', cursor: 'pointer',
-                    background: activeVideo?._id === video._id ? 'linear-gradient(90deg, #ffd700, #b8860b)' : '#111',
-                    color: activeVideo?._id === video._id ? '#000' : '#888',
-                    fontWeight: 'bold', transform: activeVideo?._id === video._id ? 'scale(1.03)' : 'scale(1)',
-                    transition: '0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                    display: 'flex', alignItems: 'center', gap: '15px',
-                    boxShadow: activeVideo?._id === video._id ? '0 10px 20px rgba(255,215,0,0.2)' : 'none'
+                        padding: '25px', borderRadius: '20px', cursor: 'pointer',
+                        background: activeVideo?._id === video._id ? 'linear-gradient(135deg, #ffd700 0%, #b8860b 100%)' : '#111',
+                        color: activeVideo?._id === video._id ? '#000' : '#888',
+                        fontWeight: '900', transform: activeVideo?._id === video._id ? 'translateX(10px) scale(1.02)' : 'scale(1)',
+                        transition: 'all 0.5s cubic-bezier(0.2, 1, 0.3, 1)',
+                        display: 'flex', alignItems: 'center', gap: '20px',
+                        boxShadow: activeVideo?._id === video._id ? '0 15px 30px rgba(255,215,0,0.25)' : 'none',
+                        border: '1px solid', borderColor: activeVideo?._id === video._id ? '#ffd700' : '#1a1a1a'
                     }}
                 >
-                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{String(index + 1).padStart(2, '0')}</div>
-                    <div style={{ fontSize: '0.95rem' }}>{video.title.toUpperCase()}</div>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.5 }}>{String(index + 1).padStart(2, '0')}</div>
+                    <div style={{ fontSize: '1rem', letterSpacing: '1px' }}>{video.title.toUpperCase()}</div>
                 </div>
                 ))}
+            </div>
+            <div style={{ marginTop: '40px', textAlign: 'center', color: '#444', fontSize: '0.7rem', fontWeight: 'bold', letterSpacing: '2px' }}>
+                🛡️ MARO ACADEMY SECURITY V2.0
             </div>
           </div>
         </div>
