@@ -17,7 +17,7 @@ const VideoVault = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [systemReady, setSystemReady] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  //const [sidebarVisible, setSidebarVisible] = useState(true);
   
   const navigate = useNavigate();
   const API_URL = "https://maro-academy-v2.onrender.com";
