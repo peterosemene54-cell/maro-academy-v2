@@ -151,7 +151,7 @@ const VideoVault = ({ user }) => {
                   width: '102%', height: '120%', border: 'none',
                   filter: 'contrast(1.1) saturate(1.1) brightness(1.05)'
                 }}
-                {/* 🔒 THE SECURITY FENCE: Blocks YouTube App Hijacking */}
+                /* 🔒 THE SECURITY FENCE: Blocks YouTube App Hijacking */
                 sandbox="allow-scripts allow-same-origin allow-presentation"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
