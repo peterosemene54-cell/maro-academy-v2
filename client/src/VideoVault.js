@@ -7,7 +7,7 @@ const VideoVault = ({ user }) => {
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const API_URL = "https://onrender.com";
+  const API_URL = "https://maro-academy-v2.onrender.com";
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
