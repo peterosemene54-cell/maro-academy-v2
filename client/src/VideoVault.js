@@ -63,7 +63,7 @@ const VideoVault = ({ user }) => {
                 {/* 🚀 THE GHOST PLAYER (Deep Overscan -15% kills logos) */}
                 <iframe 
                     title="Maro Academy Ultra Premium"
-                    src={`https://youtube.com{activeVideo.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=0`}
+                    src={`https://youtube.com/embed/${activeVideo.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&fs=0&disablekb=0`}
                     style={{ position: 'absolute', top: '-15%', left: '-2%', width: '104%', height: '135%', border: 'none' }}
                     allow="autoplay; encrypted-media"
                 ></iframe>
