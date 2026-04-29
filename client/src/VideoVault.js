@@ -50,14 +50,73 @@ const VideoVault = ({ user }) => {
                     {activeVideo ? (
                         <>
                             <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '15px', background: '#000', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                           <iframe 
-    title="Maro Academy Tutorial" // 👈 ADD THIS LINE HERE!
-    src={`https://youtube.com/embed/${activeVideo.videoId}?modestbranding=1&rel=0&showinfo=0`}
-    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-    frameBorder="0" 
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-    allowFullScreen>
-</iframe>
+ {/* 🏛️ THE PRESIDENTIAL ARMOR CONTAINER */}
+<div style={{ 
+    position: 'relative', 
+    width: '100%', 
+    paddingBottom: '56.25%', 
+    overflow: 'hidden', 
+    borderRadius: '24px', 
+    background: '#050505',
+    border: '6px solid #1a1a1a', 
+    boxShadow: '0 30px 60px rgba(0,0,0,0.9), inset 0 0 100px rgba(255,215,0,0.05)',
+    transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+}}>
+    
+    {/* 🛡️ TOP SECURITY OVERLAY (Kills the YouTube Title & Share Button) */}
+    <div style={{ 
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '85px', 
+        zIndex: 20, background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
+        pointerEvents: 'none' 
+    }}></div>
+
+    {/* 🛡️ THE GHOST SHIELD (Transparent layer that prevents right-clicking or title-tapping) */}
+    <div style={{ 
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+        zIndex: 15, background: 'rgba(0,0,0,0)', cursor: 'default'
+    }}></div>
+
+    {/* 🚀 THE DEEP CINEMA ZOOM (This physically shoves YouTube branding out of the galaxy) */}
+    <iframe 
+        title="MARO ACADEMY ULTRA PREMIUM"
+        src={`https://youtube.com/embed/${activeVideo.videoId}?modestbranding=1&rel=0&controls=1&showinfo=0&disablekb=1&iv_load_policy=3&fs=0&color=white&autohide=1`}
+        style={{ 
+            position: 'absolute', 
+            top: '-12%', // Aggressive push to hide the title bar
+            left: '-1%', 
+            width: '102%', 
+            height: '124%', // Aggressive stretch to bury the bottom logos
+            border: 'none',
+            pointerEvents: 'auto',
+            filter: 'brightness(1.05) contrast(1.1)' // Makes the colors "Heavy"
+        }}
+        allow="autoplay; encrypted-media"
+        allowFullScreen
+    ></iframe>
+
+    {/* 💎 PREMIUM MARO WATERMARK (Floating "Hologram" Style) */}
+    <div style={{ 
+        position: 'absolute', top: '30px', right: '30px', zIndex: 25,
+        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)',
+        padding: '8px 20px', borderRadius: '100px',
+        border: '1px solid rgba(255,215,0,0.4)',
+        boxShadow: '0 0 20px rgba(255,215,0,0.2)'
+    }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '8px', height: '8px', background: '#ffd700', borderRadius: '50%', boxShadow: '0 0 10px #ffd700' }}></div>
+            <span style={{ color: '#ffd700', fontSize: '0.75rem', fontWeight: '900', letterSpacing: '3px', textShadow: '0 0 10px rgba(255,215,0,0.5)' }}>
+                MARO ACADEMY PRO
+            </span>
+        </div>
+    </div>
+
+    {/* 🔒 SECURITY FOOTER (Hides the "Watch on YouTube" and Branding) */}
+    <div style={{ 
+        position: 'absolute', bottom: 0, left: 0, width: '100%', height: '50px', 
+        zIndex: 20, background: '#000', pointerEvents: 'none'
+    }}></div>
+</div>
+
 
                             </div>
                             <div style={{ marginTop: '25px', background: '#222', padding: '25px', borderRadius: '12px', borderLeft: '5px solid #ffd700' }}>
