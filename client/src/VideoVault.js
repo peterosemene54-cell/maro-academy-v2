@@ -55,26 +55,22 @@ const VideoVault = ({ user }) => {
 
   /* ===============================
      YOUTUBE MESSAGE LISTENER
-     Handles: currentTime polling, state changes (ended = 0)
   =============================== */
   useEffect(() => {
     const handleMessage = (event) => {
       try {
         const data = JSON.parse(event.data);
 
-        // Track current time for progress saving
         if (data?.info?.currentTime !== undefined && activeVideo) {
           const t = data.info.currentTime;
           setCurrentTime(t);
           localStorage.setItem(`progress_${activeVideo._id}`, t);
         }
 
-        // Detect player state: 0 = ended
         if (data?.info?.playerState === 0) {
           setVideoEnded(true);
         }
 
-        // Detect player ready
         if (data?.event === 'onReady' || data?.info?.playerState !== undefined) {
           playerReadyRef.current = true;
         }
@@ -87,23 +83,17 @@ const VideoVault = ({ user }) => {
   }, [activeVideo]);
 
   /* ===============================
-     SKIP FUNCTION — RELIABLE
-     Reads currentTime from state (kept live by interval),
-     then seeks directly.
+     SKIP FUNCTION
   =============================== */
   const handleSkip = (deltaSeconds) => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-
     const newTime = Math.max(currentTime + deltaSeconds, 0);
-
     iframe.contentWindow.postMessage(
-      JSON.stringify({ event: 'command', func: 'seekTo', args: [newTime, true] }),
-      '*'
+      JSON.stringify({ event: 'command', func: 'seekTo', args: [newTime, true] }), '*'
     );
     iframe.contentWindow.postMessage(
-      JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
-      '*'
+      JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
     );
   };
 
@@ -114,8 +104,7 @@ const VideoVault = ({ user }) => {
     const interval = setInterval(() => {
       if (!iframeRef.current) return;
       iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }),
-        '*'
+        JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }), '*'
       );
     }, 1000);
     return () => clearInterval(interval);
@@ -129,14 +118,12 @@ const VideoVault = ({ user }) => {
     const savedTime = localStorage.getItem(`progress_${activeVideo._id}`);
     if (savedTime && iframeRef.current) {
       iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: 'command', func: 'seekTo', args: [parseFloat(savedTime), true] }),
-        '*'
+        JSON.stringify({ event: 'command', func: 'seekTo', args: [parseFloat(savedTime), true] }), '*'
       );
     }
   }, [activeVideo]);
 
   useEffect(() => {
-    // Reset ended state when switching videos
     setVideoEnded(false);
     setCurrentTime(0);
     const timer = setTimeout(() => resumeVideo(), 2500);
@@ -147,8 +134,27 @@ const VideoVault = ({ user }) => {
      SELECT VIDEO — blocked if ended
   =============================== */
   const handleSelectVideo = (video) => {
-    if (videoEnded) return; // Locked out — do nothing
+    if (videoEnded) return;
     setActiveVideo(video);
+  };
+
+  /* ===============================
+     BUILD EMBED URL
+  =============================== */
+  const buildEmbedUrl = (videoId) => {
+    const params = new URLSearchParams({
+      enablejsapi: '1',
+      rel: '0',
+      modestbranding: '1',
+      iv_load_policy: '3',
+      disablekb: '0',
+      autoplay: '1',
+      controls: '1',
+      showinfo: '0',
+      color: 'white',
+      origin: window.location.origin,
+    });
+    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
   };
 
   /* ===============================
@@ -161,31 +167,6 @@ const VideoVault = ({ user }) => {
       </div>
     );
   }
-
-  /* ===============================
-     BUILD YOUTUBE EMBED URL
-     - youtube-nocookie.com → no tracking, suppresses related videos
-     - rel=0 → no related videos at end
-     - modestbranding=1 → minimal branding
-     - disablekb=0 → allow keyboard
-     - iv_load_policy=3 → no annotations
-     - fs=0 → no fullscreen button (optional, remove if you want it)
-     - enablejsapi=1 → required for postMessage API
-     - origin → required for postMessage security
-  =============================== */
-  const buildEmbedUrl = (videoId) => {
-    const params = new URLSearchParams({
-      enablejsapi: '1',
-      rel: '0',
-      modestbranding: '1',
-      iv_load_policy: '3',
-      disablekb: '0',
-      autoplay: '1',
-      controls: '1',
-      origin: window.location.origin,
-    });
-    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
-  };
 
   /* ===============================
      UI
@@ -207,8 +188,8 @@ const VideoVault = ({ user }) => {
         <div style={styles.playerSection}>
           {activeVideo && (
             <>
-              {/* Player wrapper with end screen blocker */}
               <div style={styles.playerWrapper}>
+
                 <iframe
                   ref={iframeRef}
                   title="Video Player"
@@ -218,7 +199,33 @@ const VideoVault = ({ user }) => {
                   allowFullScreen
                 />
 
-                {/* END SCREEN OVERLAY — blocks clicking YouTube end cards */}
+                {/* ── BRANDING BLOCKERS ── */}
+
+                {/* Top-left: hides channel name + avatar */}
+                <div style={{
+                  position: 'absolute', top: 0, left: 0,
+                  width: '55%', height: '64px',
+                  background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
+                  zIndex: 5, pointerEvents: 'none',
+                }} />
+
+                {/* Top-right: hides YouTube top-right icons */}
+                <div style={{
+                  position: 'absolute', top: 0, right: 0,
+                  width: '120px', height: '64px',
+                  background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
+                  zIndex: 5, pointerEvents: 'none',
+                }} />
+
+                {/* Bottom: hides "More videos" + YouTube logo */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0,
+                  width: '100%', height: '42px',
+                  background: '#000',
+                  zIndex: 5, pointerEvents: 'none',
+                }} />
+
+                {/* END SCREEN OVERLAY */}
                 {videoEnded && (
                   <div style={styles.endOverlay}>
                     <div style={styles.endCard}>
@@ -230,6 +237,7 @@ const VideoVault = ({ user }) => {
                     </div>
                   </div>
                 )}
+
               </div>
 
               {/* SKIP CONTROLS */}
@@ -288,6 +296,7 @@ const VideoVault = ({ user }) => {
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
@@ -363,11 +372,9 @@ const styles = {
   },
   endOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    background: 'rgba(0,0,0,0.92)',
+    top: 0, left: 0,
+    width: '100%', height: '100%',
+    background: 'rgba(0,0,0,0.93)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -477,3 +484,5 @@ const styles = {
 };
 
 export default VideoVault;
+
+
