@@ -2,47 +2,53 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-/**
- * 🏛️ MARO ACADEMY VIDEO VAULT
- * Skip works via YouTube IFrame API (window.YT.Player)
- */
-
 const VideoVault = ({ user }) => {
+  // ===============================
+  // STATE & REFS
+  // ===============================
   const [videos, setVideos] = useState([]);
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [videoEnded, setVideoEnded] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const navigate = useNavigate();
-  const playerRef = useRef(null);      // holds the YT.Player instance
-  const playerDivId = 'yt-player';     // div id the API attaches to
+  const playerRef = useRef(null);      // Holds the YT.Player instance
+  const playerDivId = 'mighty-vault-player';
+  const API_URL = "https://onrender.com";
 
-  const API_URL = "https://maro-academy-v2.onrender.com";
-
-  /* ===============================
-     SECURITY LOCK
-  =============================== */
+  // ===============================
+  // 🛡️ MIGHTY SECURITY LAYER
+  // Blocks Right-Click, F12, and Inspect Element
+  // ===============================
   useEffect(() => {
-    const preventMenu = (e) => e.preventDefault();
-    document.addEventListener("contextmenu", preventMenu);
-    return () => document.removeEventListener("contextmenu", preventMenu);
+    const preventSabotage = (e) => {
+      // Block Right Click
+      if (e.type === "contextmenu") e.preventDefault();
+      
+      // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+      if (
+        e.keyCode === 123 || 
+        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+        (e.ctrlKey && e.keyCode === 85)
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    document.addEventListener("contextmenu", preventSabotage);
+    document.addEventListener("keydown", preventSabotage);
+    
+    return () => {
+      document.removeEventListener("contextmenu", preventSabotage);
+      document.removeEventListener("keydown", preventSabotage);
+    };
   }, []);
 
-  /* ===============================
-     LOAD YOUTUBE IFRAME API SCRIPT
-     Only loads once. Sets window.onYouTubeIframeAPIReady
-  =============================== */
-  useEffect(() => {
-    if (window.YT && window.YT.Player) return; // already loaded
-
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.body.appendChild(tag);
-  }, []);
-
-  /* ===============================
-     FETCH VIDEOS
-  =============================== */
+  // ===============================
+  // DATA INITIALIZATION
+  // ===============================
   const initializeVault = useCallback(async () => {
     if (!user) {
       navigate('/login');
@@ -56,7 +62,7 @@ const VideoVault = ({ user }) => {
       }
       setTimeout(() => setLoading(false), 1200);
     } catch (error) {
-      console.error("🚨 VIDEO LOAD ERROR:", error);
+      console.error("🚨 VAULT ERROR:", error);
       setLoading(false);
     }
   }, [user, navigate]);
@@ -65,58 +71,77 @@ const VideoVault = ({ user }) => {
     initializeVault();
   }, [initializeVault]);
 
-  /* ===============================
-     CREATE / RECREATE YT PLAYER
-     Runs whenever activeVideo changes
-  =============================== */
+  // ===============================
+  // 🎥 THE MIGHTY PLAYER ENGINE
+  // Handles YouTube API & Security
+  // ===============================
   useEffect(() => {
     if (!activeVideo) return;
 
-    // Destroy old player if it exists
+    // 1. Destroy old player to prevent memory leaks
     if (playerRef.current) {
       try { playerRef.current.destroy(); } catch (e) {}
       playerRef.current = null;
     }
 
     setVideoEnded(false);
+    setIsPlaying(false);
 
     const savedTime = parseFloat(
       localStorage.getItem(`progress_${activeVideo._id}`) || '0'
     );
 
     const createPlayer = () => {
+      if (!window.YT || !window.YT.Player) return;
+
       playerRef.current = new window.YT.Player(playerDivId, {
         videoId: activeVideo.videoId,
         playerVars: {
           autoplay: 1,
-          rel: 0,
-          modestbranding: 1,
-          iv_load_policy: 3,
-          showinfo: 0,
-          color: 'white',
+          controls: 0,          // NO RUBBISH YT CONTROLS
+          modestbranding: 1,    // HIDE LOGO
+          rel: 0,               // NO SUGGESTED VIDEOS
+          disablekb: 1,         // DISABLE KEYBOARD HACKS
+          iv_load_policy: 3,    // HIDE ANNOTATIONS
+          fs: 0,                // DISABLE FULLSCREEN (Protects UI)
+          playsinline: 1,       // FOR MOBILE USERS
           start: Math.floor(savedTime),
           origin: window.location.origin,
         },
         events: {
+          onReady: (event) => {
+            event.target.playVideo();
+          },
           onStateChange: (event) => {
-            // 0 = ended
-            if (event.data === 0) {
+            // 0 = Ended
+            if (event.data === window.YT.PlayerState.ENDED) {
               setVideoEnded(true);
+              setIsPlaying(false);
+            }
+            // 1 = Playing
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setIsPlaying(true);
+            }
+            // 2 = Paused
+            if (event.data === window.YT.PlayerState.PAUSED) {
+              setIsPlaying(false);
             }
           },
         },
       });
     };
 
-    // If API already ready, create immediately. Otherwise wait.
+    // Load API if not present, else just create
     if (window.YT && window.YT.Player) {
       createPlayer();
     } else {
+      const tag = document.createElement('script');
+      tag.src = 'https://youtube.com';
       window.onYouTubeIframeAPIReady = createPlayer;
+      document.body.appendChild(tag);
     }
 
     return () => {
-      // cleanup on unmount
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch (e) {}
         playerRef.current = null;
@@ -124,373 +149,348 @@ const VideoVault = ({ user }) => {
     };
   }, [activeVideo]);
 
-  /* ===============================
-     SAVE PROGRESS EVERY 5s
-  =============================== */
+  // ===============================
+  // 💾 PROGRESS PERSISTENCE
+  // Saves time every 5 seconds
+  // ===============================
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!playerRef.current || !activeVideo) return;
-      try {
-        const t = playerRef.current.getCurrentTime();
-        if (t) {
-          localStorage.setItem(`progress_${activeVideo._id}`, t);
-        }
-      } catch (e) {}
+      if (playerRef.current && playerRef.current.getCurrentTime && activeVideo) {
+        try {
+          const currentTime = playerRef.current.getCurrentTime();
+          if (currentTime > 0) {
+            localStorage.setItem(`progress_${activeVideo._id}`, currentTime);
+          }
+        } catch (e) {}
+      }
     }, 5000);
     return () => clearInterval(interval);
   }, [activeVideo]);
 
-  /* ===============================
-     SKIP — NOW ACTUALLY WORKS
-     Uses YT.Player API directly, no postMessage needed
-  =============================== */
-  const handleSkip = (deltaSeconds) => {
-    if (!playerRef.current) return;
+  // ===============================
+  // HANDLERS (BACK/FORWARD/PLAY)
+  // ===============================
+  const handleSkip = (delta) => {
+    if (!playerRef.current || videoEnded) return;
     try {
       const current = playerRef.current.getCurrentTime();
-      const newTime = Math.max(current + deltaSeconds, 0);
-      playerRef.current.seekTo(newTime, true);
+      playerRef.current.seekTo(current + delta, true);
       playerRef.current.playVideo();
-    } catch (e) {
-      console.error("Skip error:", e);
+    } catch (e) {}
+  };
+
+  const togglePlayback = () => {
+    if (!playerRef.current) return;
+    if (isPlaying) {
+      playerRef.current.pauseVideo();
+    } else {
+      playerRef.current.playVideo();
     }
   };
 
-  /* ===============================
-     SELECT VIDEO — blocked if ended
-  =============================== */
   const handleSelectVideo = (video) => {
-    if (videoEnded) return;
+    if (videoEnded) return; // Locked navigation
     setActiveVideo(video);
   };
 
-  /* ===============================
-     LOADING
-  =============================== */
+  // ===============================
+  // LOADING UI
+  // ===============================
   if (loading) {
     return (
       <div style={styles.loadingWrapper}>
-        <h2 style={{ color: '#ffd700' }}>🔐 Loading Vault...</h2>
+        <div style={styles.loaderSpinner}></div>
+        <h2 style={{ color: '#ffd700', marginTop: '20px' }}>🔐 UNLOCKING VAULT...</h2>
       </div>
     );
   }
 
-  /* ===============================
-     UI
-  =============================== */
+  // ===============================
+  // THE GREAT UI RETURN
+  // ===============================
   return (
     <div style={styles.container}>
-
       {/* HEADER */}
       <div style={styles.header}>
-        <h1 style={styles.logo}>🏛️ MARO ACADEMY</h1>
-        <button style={styles.logoutBtn} onClick={() => navigate('/login')}>
-          Logout
-        </button>
+        <div style={styles.logoGroup}>
+          <span style={styles.logoIcon}>🏛️</span>
+          <h1 style={styles.logo}>MARO ACADEMY PRO</h1>
+        </div>
+        <div style={styles.userMeta}>
+          <span style={styles.userName}>{user?.name || 'Academic'}</span>
+          <button style={styles.logoutBtn} onClick={() => navigate('/login')}>Logout</button>
+        </div>
       </div>
 
       <div style={styles.layout}>
-
-        {/* LEFT — VIDEO PLAYER */}
+        {/* LEFT — THE MIGHTY PLAYER SECTION */}
         <div style={styles.playerSection}>
           {activeVideo && (
             <>
               <div style={styles.playerWrapper}>
-
-                {/* YT API attaches to this div — NOT an iframe we create */}
+                {/* 1. THE ACTUAL PLAYER DIV */}
                 <div id={playerDivId} style={styles.playerDiv} />
 
-                {/* ── BRANDING BLOCKERS ── */}
+                {/* 2. THE MIGHTY SHIELD (Click-Jacking Protection) */}
+                <div style={styles.mightyShield} onContextMenu={(e) => e.preventDefault()} />
 
-                {/* Top-left: hides channel name + avatar */}
-                <div style={{
-                  position: 'absolute', top: 0, left: 0,
-                  width: '60%', height: '70px',
-                  background: 'linear-gradient(to bottom, #000 30%, transparent 100%)',
-                  zIndex: 5, pointerEvents: 'none',
-                }} />
+                {/* 3. BRANDING BLOCKERS */}
+                <div style={styles.topLeftBlocker} />
+                <div style={styles.topRightBlocker} />
+                <div style={styles.bottomBlocker} />
 
-                {/* Top-right: hides YouTube icons */}
-                <div style={{
-                  position: 'absolute', top: 0, right: 0,
-                  width: '160px', height: '70px',
-                  background: 'linear-gradient(to bottom, #000 30%, transparent 100%)',
-                  zIndex: 5, pointerEvents: 'none',
-                }} />
-
-                {/* Bottom: hides "More videos" + YouTube logo */}
-                <div style={{
-                  position: 'absolute', bottom: 0, left: 0,
-                  width: '100%', height: '46px',
-                  background: '#000',
-                  zIndex: 5, pointerEvents: 'none',
-                }} />
-
-                {/* END SCREEN OVERLAY */}
+                {/* 4. END SCREEN OVERLAY */}
                 {videoEnded && (
                   <div style={styles.endOverlay}>
                     <div style={styles.endCard}>
                       <div style={styles.endIcon}>🎓</div>
                       <h2 style={styles.endTitle}>Lesson Complete!</h2>
-                      <p style={styles.endText}>
-                        Great work. Contact your instructor to unlock the next lesson.
-                      </p>
+                      <p style={styles.endText}>You have completed this stage. Contact your instructor to unlock the next vault.</p>
                     </div>
                   </div>
                 )}
-
               </div>
 
-              {/* SKIP CONTROLS */}
+              {/* MIGHTY CONTROLS */}
               <div style={styles.controls}>
-                <button
-                  style={{
-                    ...styles.skipBtn,
-                    ...(videoEnded ? styles.skipBtnDisabled : {}),
-                  }}
+                <button 
+                  style={{...styles.skipBtn, ...(videoEnded ? styles.disabledBtn : {})}} 
                   onClick={() => handleSkip(-10)}
                   disabled={videoEnded}
                 >
-                  ⏪ Back 10s
+                  ⏪ 10s
                 </button>
-                <button
-                  style={{
-                    ...styles.skipBtn,
-                    ...(videoEnded ? styles.skipBtnDisabled : {}),
-                  }}
+
+                <button 
+                  style={{...styles.playBtn, ...(videoEnded ? styles.disabledBtn : {})}} 
+                  onClick={togglePlayback}
+                  disabled={videoEnded}
+                >
+                  {isPlaying ? '⏸ PAUSE' : '▶ PLAY LESSON'}
+                </button>
+
+                <button 
+                  style={{...styles.skipBtn, ...(videoEnded ? styles.disabledBtn : {})}} 
                   onClick={() => handleSkip(10)}
                   disabled={videoEnded}
                 >
-                  Forward 10s ⏩
+                  10s ⏩
                 </button>
               </div>
 
               {/* VIDEO INFO */}
-              <h2 style={styles.videoTitle}>{activeVideo.title}</h2>
-              <p style={styles.videoDesc}>{activeVideo.description}</p>
+              <div style={styles.infoBox}>
+                <h2 style={styles.videoTitle}>{activeVideo.title}</h2>
+                <div style={styles.divider}></div>
+                <p style={styles.videoDesc}>{activeVideo.description}</p>
+              </div>
             </>
           )}
         </div>
 
-        {/* RIGHT — VIDEO LIST */}
+        {/* RIGHT — MIGHTY SIDEBAR */}
         <div style={styles.sidebar}>
-          <h3 style={styles.sidebarTitle}>Course Videos</h3>
-          {videos.map((video) => {
-            const isActive = activeVideo?._id === video._id;
-            return (
-              <div
-                key={video._id}
-                onClick={() => handleSelectVideo(video)}
-                style={{
-                  ...styles.videoItem,
-                  ...(isActive ? styles.videoItemActive : {}),
-                  ...(videoEnded ? styles.videoItemLocked : {}),
-                }}
-                title={videoEnded ? 'Lesson ended — cannot navigate' : video.title}
-              >
-                <span style={styles.videoItemDot}>
-                  {isActive ? '▶' : '○'}
-                </span>
-                <span>{video.title}</span>
-                {videoEnded && <span style={styles.lockIcon}>🔒</span>}
-              </div>
-            );
-          })}
+          <div style={styles.sidebarHeader}>
+            <h3 style={styles.sidebarTitle}>COURSE CURRICULUM</h3>
+            <span style={styles.videoCount}>{videos.length} LESSONS</span>
+          </div>
+
+          <div style={styles.videoList}>
+            {videos.map((video) => {
+              const isActive = activeVideo?._id === video._id;
+              return (
+                <div
+                  key={video._id}
+                  onClick={() => handleSelectVideo(video)}
+                  style={{
+                    ...styles.videoItem,
+                    ...(isActive ? styles.videoItemActive : {}),
+                    ...(videoEnded ? styles.videoItemLocked : {}),
+                  }}
+                >
+                  <div style={styles.videoItemStatus}>
+                    {isActive ? '▶' : '○'}
+                  </div>
+                  <div style={styles.videoItemInfo}>
+                    <span style={styles.videoItemTitle}>{video.title}</span>
+                  </div>
+                  {videoEnded && <span style={styles.lockIcon}>🔒</span>}
+                </div>
+              );
+            })}
+          </div>
 
           {videoEnded && (
             <div style={styles.lockedNotice}>
-              🔒 Navigation locked after lesson ends.
+              ⚠️ Navigation is locked while lesson is completed. Refresh to restart or proceed.
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
 };
 
-/* ===============================
-   STYLES
-=============================== */
+// ===============================
+// MIGHTY STYLES (500+ LINES READY)
+// ===============================
 const styles = {
   loadingWrapper: {
     height: '100vh',
     display: 'flex',
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    background: '#0a0a0a',
+    background: '#050505',
+  },
+  loaderSpinner: {
+    width: '50px',
+    height: '50px',
+    border: '5px solid #111',
+    borderTop: '5px solid #ffd700',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
   },
   container: {
-    background: '#0a0a0a',
+    background: '#050505',
     minHeight: '100vh',
     color: '#fff',
-    padding: '24px',
-    fontFamily: "'Segoe UI', sans-serif",
+    padding: '24px 40px',
+    fontFamily: "'Inter', sans-serif",
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '28px',
-    borderBottom: '1px solid #222',
-    paddingBottom: '16px',
+    marginBottom: '32px',
+    borderBottom: '1px solid #1a1a1a',
+    paddingBottom: '20px',
   },
+  logoGroup: { display: 'flex', alignItems: 'center', gap: '12px' },
+  logoIcon: { fontSize: '2rem' },
   logo: {
     color: '#ffd700',
     margin: 0,
-    fontSize: '1.6rem',
-    letterSpacing: '2px',
+    fontSize: '1.4rem',
+    letterSpacing: '3px',
+    fontWeight: '800',
   },
+  userMeta: { display: 'flex', alignItems: 'center', gap: '20px' },
+  userName: { color: '#888', fontSize: '0.9rem', fontWeight: '500' },
   logoutBtn: {
-    background: 'transparent',
-    border: '1px solid #444',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid #333',
     color: '#aaa',
-    padding: '8px 18px',
+    padding: '8px 20px',
     borderRadius: '6px',
     cursor: 'pointer',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
+    transition: '0.3s',
   },
   layout: {
     display: 'flex',
-    gap: '28px',
-    alignItems: 'flex-start',
+    gap: '40px',
+    maxWidth: '1600px',
+    margin: '0 auto',
   },
-  playerSection: {
-    flex: 1,
-    minWidth: 0,
-  },
+  playerSection: { flex: 1, minWidth: 0 },
   playerWrapper: {
     position: 'relative',
     paddingBottom: '56.25%',
     height: 0,
     overflow: 'hidden',
-    borderRadius: '10px',
-    marginBottom: '16px',
+    borderRadius: '16px',
+    marginBottom: '24px',
     background: '#000',
+    boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+    border: '1px solid #1a1a1a',
   },
   playerDiv: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    borderRadius: '10px',
+    top: 0, left: 0,
+    width: '100%', height: '100%',
+    pointerEvents: 'none', // THE MIGHTY DIGITAL LOCK
+  },
+  mightyShield: {
+    position: 'absolute',
+    top: 0, left: 0,
+    width: '100%', height: '100%',
+    zIndex: 10,
+    background: 'transparent', // THE MIGHTY PHYSICAL WALL
+  },
+  topLeftBlocker: {
+    position: 'absolute', top: 0, left: 0,
+    width: '50%', height: '80px',
+    background: 'linear-gradient(to bottom, #000 30%, transparent 100%)',
+    zIndex: 11, pointerEvents: 'none',
+  },
+  topRightBlocker: {
+    position: 'absolute', top: 0, right: 0,
+    width: '150px', height: '80px',
+    background: 'linear-gradient(to bottom, #000 30%, transparent 100%)',
+    zIndex: 11, pointerEvents: 'none',
+  },
+  bottomBlocker: {
+    position: 'absolute', bottom: 0, left: 0,
+    width: '100%', height: '55px',
+    background: '#000',
+    zIndex: 11, pointerEvents: 'none',
   },
   endOverlay: {
     position: 'absolute',
     top: 0, left: 0,
     width: '100%', height: '100%',
-    background: 'rgba(0,0,0,0.93)',
+    background: 'rgba(0,0,0,0.96)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
-    borderRadius: '10px',
+    zIndex: 100,
   },
-  endCard: {
-    textAlign: 'center',
-    padding: '40px',
-  },
-  endIcon: {
-    fontSize: '4rem',
-    marginBottom: '16px',
-  },
-  endTitle: {
-    color: '#ffd700',
-    fontSize: '2rem',
-    marginBottom: '12px',
-  },
-  endText: {
-    color: '#aaa',
-    fontSize: '1rem',
-    maxWidth: '320px',
-    margin: '0 auto',
-    lineHeight: '1.6',
-  },
-  controls: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '16px',
-  },
+  endCard: { textAlign: 'center', padding: '40px' },
+  endIcon: { fontSize: '5rem', marginBottom: '20px' },
+  endTitle: { color: '#ffd700', fontSize: '2.4rem', marginBottom: '15px' },
+  endText: { color: '#888', fontSize: '1.1rem', maxWidth: '400px', margin: '0 auto', lineHeight: '1.7' },
+  controls: { display: 'flex', gap: '16px', marginBottom: '30px' },
   skipBtn: {
-    background: '#1a1a1a',
-    border: '1px solid #333',
-    color: '#ffd700',
-    padding: '10px 20px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '0.95rem',
-    transition: 'background 0.2s',
-  },
-  skipBtnDisabled: {
-    opacity: 0.4,
-    cursor: 'not-allowed',
-  },
-  videoTitle: {
-    color: '#fff',
-    margin: '0 0 8px',
-    fontSize: '1.3rem',
-  },
-  videoDesc: {
-    color: '#888',
-    fontSize: '0.9rem',
-    lineHeight: '1.6',
-  },
-  sidebar: {
-    width: '280px',
-    flexShrink: 0,
     background: '#111',
+    border: '1px solid #222',
+    color: '#fff',
+    padding: '12px 24px',
     borderRadius: '10px',
-    padding: '16px',
-    maxHeight: '80vh',
-    overflowY: 'auto',
-  },
-  sidebarTitle: {
-    color: '#ffd700',
-    margin: '0 0 16px',
-    fontSize: '0.85rem',
-    textTransform: 'uppercase',
-    letterSpacing: '2px',
-  },
-  videoItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '12px',
-    borderRadius: '6px',
     cursor: 'pointer',
-    fontSize: '0.9rem',
-    color: '#ccc',
-    marginBottom: '4px',
-    transition: 'background 0.2s',
+    fontWeight: '600',
+    transition: '0.2s',
   },
-  videoItemActive: {
-    background: '#1e1e00',
-    color: '#ffd700',
+  playBtn: {
+    background: '#ffd700',
+    border: 'none',
+    color: '#000',
+    padding: '12px 40px',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '800',
+    fontSize: '1rem',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    transition: '0.2s',
   },
-  videoItemLocked: {
-    cursor: 'not-allowed',
-    opacity: 0.5,
-  },
-  videoItemDot: {
-    fontSize: '0.8rem',
-    color: '#ffd700',
-    flexShrink: 0,
-  },
-  lockIcon: {
-    marginLeft: 'auto',
-    fontSize: '0.8rem',
-  },
-  lockedNotice: {
-    marginTop: '16px',
-    padding: '12px',
-    background: '#1a0a0a',
-    border: '1px solid #400',
-    borderRadius: '6px',
-    color: '#e55',
-    fontSize: '0.8rem',
-    textAlign: 'center',
-  },
+  disabledBtn: { opacity: 0.2, cursor: 'not-allowed' },
+  infoBox: { background: '#0a0a0a', padding: '30px', borderRadius: '16px', border: '1px solid #111' },
+  videoTitle: { color: '#fff', margin: '0 0 15px', fontSize: '1.8rem', fontWeight: '700' },
+  divider: { height: '2px', width: '60px', background: '#ffd700', marginBottom: '20px' },
+  videoDesc: { color: '#888', fontSize: '1rem', lineHeight: '1.8' },
+  sidebar: { width: '350px', flexShrink: 0, background: '#0a0a0a', borderRadius: '16px', padding: '24px', border: '1px solid #111', maxHeight: '85vh', overflowY: 'auto' },
+  sidebarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #1a1a1a', paddingBottom: '15px' },
+  sidebarTitle: { color: '#ffd700', margin: 0, fontSize: '0.8rem', letterSpacing: '2px', fontWeight: 'bold' },
+  videoCount: { color: '#444', fontSize: '0.7rem', fontWeight: 'bold' },
+  videoList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  videoItem: { display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', borderRadius: '10px', cursor: 'pointer', background: '#111', border: '1px solid transparent', transition: '0.2s' },
+  videoItemActive: { background: '#1e1e00', borderColor: '#ffd70033', color: '#ffd700' },
+  videoItemLocked: { opacity: 0.4, cursor: 'not-allowed' },
+  videoItemStatus: { fontSize: '0.9rem', color: '#ffd700' },
+  videoItemTitle: { fontSize: '0.95rem', fontWeight: '500' },
+  lockIcon: { marginLeft: 'auto', fontSize: '0.9rem', color: '#ffd700' },
+  lockedNotice: { marginTop: '20px', padding: '15px', background: '#200', borderRadius: '8px', color: '#f55', fontSize: '0.85rem', textAlign: 'center', border: '1px solid #400' },
 };
 
 export default VideoVault;
