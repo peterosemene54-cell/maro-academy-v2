@@ -1,36 +1,60 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // 🚀 HEAVY MOVE: "Lazy Loading" 
-// This makes the website faster by only loading the Admin page when you actually go there.
 const Register = lazy(() => import('./Register'));
 const Admin = lazy(() => import('./Admin'));
-
-// 🛡️ HEAVY MOVE: Private Route Protection
-// Even if a student finds the link, we can add a password check here later.
-const AdminWrapper = ({ children }) => {
-  return children; 
-};
+const Login = lazy(() => import('./Login'));
+const VideoVault = lazy(() => import('./VideoVault'));
+const AccessDenied = lazy(() => import('./AccessDenied'));
 
 function App() {
+  // 🔐 This state holds the "Oga Key" (the user data)
+  const [user, setUser] = useState(null);
+
+  // Check if user was already logged in (saves them from logging in every 5 mins)
+  useEffect(() => {
+    const savedUser = localStorage.getItem('maroUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  // Function to lock the suitcase when they log in
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('maroUser', JSON.stringify(userData));
+  };
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
-        {/* 🕵️‍♂️ Suspense: Shows a loading message while the "Heavy" pages are waking up */}
         <Suspense fallback={<div style={{textAlign: 'center', padding: '50px'}}>Loading Maro Academy... 🦾</div>}>
           <Routes>
             {/* 🏠 The Student Gateway */}
             <Route path="/" element={<Register />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* 🔑 The Login Gate */}
+            <Route path="/login" element={<Login setUser={handleLogin} />} />
 
-            {/* 🔐 The Oga's Secret Vault */}
+            {/* 🔒 Access Denied Page */}
+            <Route path="/access-denied" element={<AccessDenied />} />
+
+            {/* 🎬 THE VIP ROOM (Only for Paid Students) */}
             <Route 
-              path="/oga-boss-admin-vault-77" 
+              path="/video-vault" 
               element={
-                <AdminWrapper>
-                  <Admin />
-                </AdminWrapper>
+                user ? (
+                  user.isPaid ? <VideoVault user={user} /> : <Navigate to="/access-denied" />
+                ) : (
+                  <Navigate to="/login" />
+                )
               } 
             />
+
+            {/* 🔐 The Oga's Secret Vault (Admin) */}
+            <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
 
             {/* 🚫 Auto-Redirect: If someone types a wrong link, take them back home */}
             <Route path="*" element={<Navigate to="/" replace />} />
