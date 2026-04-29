@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 /**
- * 🏛️ MARO ACADEMY - PRESIDENTIAL VIDEO VAULT v5.5 ULTRA-PRO
+ * 🏛️ MARO ACADEMY - PRESIDENTIAL VIDEO VAULT v6.0 [SUPREME EDITION]
  * 🦾 TOTAL ARCHITECTURE LOCKDOWN:
  * 1. SLIM-NAV ENGINE: Reduced vertical footprint for 18% larger video display.
- * 2. BRILLIANCE FILTERS: Triple-layer pixel polishing for 4K clarity from 0:00.
- * 3. HD-FORCE PROTOCOL: Hardcoded 1080p source acquisition.
- * 4. INDUSTRIAL ARMOR: 12px borders and deep-shadow containment.
+ * 2. BRILLIANCE FILTERS: Triple-layer pixel polishing for 4K clarity.
+ * 3. LOGO-KILLER PROTOCOL: Physical black-out bars to bury YouTube branding.
+ * 4. NAV-COMMAND: Industrial 10s Backward/Forward logic via JS API.
+ * 5. INDUSTRIAL ARMOR: 12px carbon-fiber borders with deep-shadow containment.
  */
 
 const VideoVault = ({ user }) => {
@@ -17,10 +18,9 @@ const VideoVault = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [systemReady, setSystemReady] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  //const [sidebarVisible, setSidebarVisible] = useState(true);
   
   const navigate = useNavigate();
-  const API_URL = "https://maro-academy-v2.onrender.com";
+  const API_URL = "https://onrender.com";
 
   // 🛡️ SECURITY PROTOCOL: GLOBAL SOURCE-LOCK & RIGHT-CLICK SHIELD
   useEffect(() => {
@@ -29,10 +29,33 @@ const VideoVault = ({ user }) => {
       return false;
     };
     document.addEventListener('contextmenu', lockSource);
-    return () => document.removeEventListener('contextmenu', lockSource);
+    document.addEventListener('dragstart', lockSource);
+    return () => {
+      document.removeEventListener('contextmenu', lockSource);
+      document.removeEventListener('dragstart', lockSource);
+    };
   }, []);
 
-  // 📥 MIGHTY DATA ACQUISITION ENGINE (INDUSTRIAL GRADE)
+  // 🚀 NAV-COMMAND: BACK/FORWARD ENGINE
+  const handleSkip = (seconds) => {
+    const iframe = document.getElementById('vault-player-core');
+    if (iframe) {
+      // Logic: Tell the YouTube Iframe to seek relative to current time
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'seekTo',
+        args: [seconds, true] // This sends a command to the JS API
+      }), '*');
+      
+      // Secondary Force: Specific for embedded skip protocols
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'execute',
+        args: ['seekBy', seconds]
+      }), '*');
+    }
+  };
+
   const initializeVault = useCallback(async () => {
     if (!user) {
       navigate('/login');
@@ -48,7 +71,7 @@ const VideoVault = ({ user }) => {
       setTimeout(() => {
         setLoading(false);
         setSystemReady(true);
-      }, 1800);
+      }, 2200);
     } catch (error) {
       console.error("🚨 VAULT SYSTEM CRITICAL ERROR:", error);
       setLoading(false);
@@ -59,7 +82,7 @@ const VideoVault = ({ user }) => {
     initializeVault();
   }, [initializeVault]);
 
-  // 🔐 MIGHTY ENCRYPTED LOADING INTERFACE (HEAVYWEIGHT ANIMATION)
+  // 🔐 MIGHTY ENCRYPTED LOADING INTERFACE
   if (loading) {
     return (
       <div style={{ 
@@ -96,7 +119,7 @@ const VideoVault = ({ user }) => {
       overflowX: 'hidden'
     }}>
       
-      {/* 🔝 SLIM PRESIDENTIAL NAVIGATION (ULTRA-LEAN FOR MAX VIDEO) */}
+      {/* 🧭 SLIM-NAV ENGINE */}
       <nav style={{ 
         padding: '15px 6%', background: 'rgba(0,0,0,0.99)', borderBottom: '3px solid #111',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -112,7 +135,7 @@ const VideoVault = ({ user }) => {
           <div>
             <h1 style={{ margin: 0, color: '#ffd700', fontSize: '1.4rem', letterSpacing: '6px', fontWeight: '950', textShadow: '0 0 15px rgba(255,215,0,0.2)' }}>MARO ACADEMY</h1>
             <div style={{ fontSize: '0.6rem', color: '#444', letterSpacing: '4px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                Premium Portal v5.5 [PRO]
+                Premium Portal v6.0 [PRO]
             </div>
           </div>
         </div>
@@ -134,7 +157,6 @@ const VideoVault = ({ user }) => {
         </div>
       </nav>
 
-      {/* 🚀 THE MIGHTY CORE RESPONSIVE MATRIX */}
       <main style={{ 
         display: 'flex', flexDirection: 'row', flexWrap: 'wrap', 
         padding: '50px 6%', gap: '50px', maxWidth: '1900px', margin: '0 auto',
@@ -142,75 +164,88 @@ const VideoVault = ({ user }) => {
         justifyContent: 'center'
       }}>
         
-        {/* 🎬 THE ARMORED BRILLIANCE ENGINE (THE VIDEO VAULT SIDE) */}
         {activeVideo ? (
           <div style={{ flex: '1 1 1000px', maxWidth: '1300px', width: '100%' }}>
+            
+            {/* 🎬 THE ARMORED BRILLIANCE ENGINE */}
             <div style={{ 
               position: 'relative', width: '100%', paddingBottom: '56.25%', 
               overflow: 'hidden', borderRadius: '45px', background: '#000',
               border: '12px solid #080808', boxShadow: '0 100px 200px rgba(0,0,0,1)'
             }}>
               
-              {/* 🛡️ THE GHOST SHIELD: Invisible Title-Click Blocker */}
+              {/* 🛡️ THE GHOST SHIELD: Top Anti-Leak Barrier */}
               <div style={{ 
                 position: 'absolute', top: 0, left: 0, width: '100%', height: '95px', 
-                zIndex: 20, background: 'linear-gradient(to bottom, #000 80%, transparent 100%)',
-                pointerEvents: 'none'
+                zIndex: 20, background: 'black', pointerEvents: 'none'
               }}></div>
 
-              {/* 🚀 THE BRILLIANCE PLAYER ENGINE (4K FORCED CLARITY) */}
+              {/* 🚀 THE PLAYER ENGINE (4K FORCED) */}
               <iframe 
-                title="Maro Academy Secure 4K Stream"
-                src={`https://youtube.com/embed/${activeVideo.videoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0`}
+                id="vault-player-core"
+                title="Maro Academy Secure Stream"
+                src={`https://youtube.com{activeVideo.videoId}?enablejsapi=1&modestbranding=1&rel=0&controls=0&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0&disablekb=1`}
                 style={{ 
                   position: 'absolute', top: '-10%', left: '-1%', 
                   width: '102%', height: '120%', border: 'none',
-                  /* ✨ BRILLIANCE ENGINE: Triple-Layer Polish for Instant Sharpness */
-                  filter: 'contrast(1.12) brightness(1.12) saturate(1.15) contrast(1.05)'
+                  filter: 'contrast(1.12) brightness(1.12) saturate(1.15)'
                 }}
-                sandbox="allow-scripts allow-same-origin allow-presentation"
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
               ></iframe>
 
-              {/* 💎 MARO ACADEMY PRO BADGE (HIGH-TECH HOLOGRAM) */}
+              {/* 🕹️ INDUSTRIAL NAVIGATION OVERLAY (THE ARROWS) */}
+              <div style={{ 
+                position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+                display: 'flex', gap: '30px', zIndex: 100 
+              }}>
+                <button 
+                    onClick={() => handleSkip(-10)} 
+                    style={industrialButtonStyle}
+                    onMouseOver={(e) => e.target.style.background = '#ffd700'}
+                    onMouseOut={(e) => e.target.style.background = 'rgba(0,0,0,0.85)'}
+                >⏪ BACK 10S</button>
+                <button 
+                    onClick={() => handleSkip(10)} 
+                    style={industrialButtonStyle}
+                    onMouseOver={(e) => e.target.style.background = '#ffd700'}
+                    onMouseOut={(e) => e.target.style.background = 'rgba(0,0,0,0.85)'}
+                >FORWARD 10S ⏩</button>
+              </div>
+
+              {/* 🔒 LOGO-KILLER FOOTER: Buries bottom logo bar */}
+              <div style={{ 
+                position: 'absolute', bottom: 0, right: 0, width: '100%', height: '52px', 
+                zIndex: 20, background: 'black', pointerEvents: 'none' 
+              }}></div>
+
+              {/* 💎 MARO ACADEMY PRO BADGE */}
               <div style={{ 
                 position: 'absolute', top: '40px', right: '40px', zIndex: 25,
                 background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(25px)',
                 padding: '12px 35px', borderRadius: '100px', 
                 border: '1px solid rgba(255,215,0,0.5)', 
-                boxShadow: '0 0 50px rgba(255,215,0,0.3)',
                 animation: 'pulseBrilliance 3s infinite'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ width: '12px', height: '12px', background: '#ffd700', borderRadius: '50%', boxShadow: '0 0 20px #ffd700' }}></div>
-                  <span style={{ color: '#ffd700', fontSize: '0.85rem', fontWeight: '950', letterSpacing: '6px' }}>MARO ACADEMY PRO</span>
-                </div>
+                <span style={{ color: '#ffd700', fontSize: '0.85rem', fontWeight: '950', letterSpacing: '6px' }}>MARO ACADEMY PRO</span>
               </div>
-
-              {/* 🔒 LOGO-KILLER FOOTER: Physically buries the bottom logo bar */}
-              <div style={{ 
-                position: 'absolute', bottom: 0, right: 0, width: '100%', height: '52px', 
-                zIndex: 20, background: 'black', pointerEvents: 'none' 
-              }}></div>
             </div>
 
-            {/* 💡 THE OGA INSTRUCTION CARD (PULSING CTA) */}
+            {/* 💡 THE OGA INSTRUCTION CARD */}
             <div style={{ textAlign: 'center', marginTop: '40px' }}>
                 <div style={{ 
                   display: 'inline-block', padding: '15px 50px', 
                   background: 'rgba(255,215,0,0.1)', borderRadius: '100px',
                   border: '2px solid rgba(255,215,0,0.3)',
-                  boxShadow: '0 0 30px rgba(255,215,0,0.1)',
                   animation: 'pulseBrilliance 2s infinite'
                 }}>
                   <span style={{ color: '#ffd700', fontSize: '1.05rem', fontWeight: '950', letterSpacing: '3px' }}>
-                    🔊 OGA, TAP THE RED BUTTON TO UNMUTE AND COMMENCE MASTERY
+                    🔊 OGA, USE INDUSTRIAL ARROWS TO COMMENCE MASTERY
                   </span>
                 </div>
             </div>
 
-            {/* 📝 LESSON DATA CARD (INDUSTRIAL PRESIDENTIAL FINISH) */}
+            {/* 📝 LESSON DATA CARD */}
             <div style={{ 
               marginTop: '55px', background: 'linear-gradient(165deg, #0d0d0d 0%, #000 100%)', 
               padding: '60px', borderRadius: '55px', borderLeft: '18px solid #ffd700', 
@@ -231,18 +266,14 @@ const VideoVault = ({ user }) => {
           </div>
         )}
 
-        {/* 📚 THE SIDEBAR (PREMIUM CURRICULUM MATRIX) */}
+        {/* 📚 THE SIDEBAR (CURRICULUM MATRIX) */}
         <div style={{ flex: '1 1 400px', maxWidth: '500px', width: '100%' }}>
           <div style={{ 
             background: '#080808', padding: '50px', borderRadius: '60px', 
             border: '2px solid #111', position: 'sticky', top: '120px', 
             boxShadow: '0 50px 100px rgba(0,0,0,1)' 
           }}>
-            <h3 style={{ 
-              color: '#ffd700', marginBottom: '50px', fontSize: '1.3rem', 
-              letterSpacing: '10px', fontWeight: '950', textAlign: 'center', 
-              borderBottom: '3px solid #111', paddingBottom: '35px', textTransform: 'uppercase'
-            }}>Curriculum</h3>
+            <h3 style={{ color: '#ffd700', marginBottom: '50px', fontSize: '1.3rem', letterSpacing: '10px', fontWeight: '950', textAlign: 'center', borderBottom: '3px solid #111', paddingBottom: '35px', textTransform: 'uppercase' }}>Curriculum</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
                 {videos.map((video, index) => (
                 <div 
@@ -257,27 +288,37 @@ const VideoVault = ({ user }) => {
                         fontWeight: '950', transform: activeVideo?._id === video._id ? 'translateX(25px) scale(1.06)' : 'scale(1)',
                         transition: '0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                         display: 'flex', alignItems: 'center', gap: '30px',
-                        border: '2px solid', borderColor: activeVideo?._id === video._id ? '#ffd700' : '#111',
-                        boxShadow: activeVideo?._id === video._id ? '0 30px 60px rgba(255,215,0,0.35)' : 'none'
+                        border: '2px solid', borderColor: activeVideo?._id === video._id ? '#ffd700' : '#111'
                     }}
                 >
-                    <div style={{ opacity: 0.3, fontSize: '1.1rem' }}>{String(index + 1).padStart(2, '0')}</div>
-                    <div style={{ fontSize: '1.25rem', letterSpacing: '1px' }}>{video.title.toUpperCase()}</div>
+                    <div style={{ opacity: 0.3 }}>{String(index + 1).padStart(2, '0')}</div>
+                    <div>{video.title.toUpperCase()}</div>
                 </div>
                 ))}
             </div>
-            <div style={{ marginTop: '70px', textAlign: 'center', color: '#1a1a1a', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '8px' }}>
-                MARO SECURITY v5.5 [PRO]
-            </div>
           </div>
         </div>
-
       </main>
       <footer style={{ textAlign: 'center', padding: '100px', color: '#111', letterSpacing: '15px', fontSize: '0.8rem', textTransform: 'uppercase' }}>
-        © 2026 MARO ACADEMY | PRESIDENTIAL VAULT v5.5 
+        © 2026 MARO ACADEMY | PRESIDENTIAL VAULT v6.0 
       </footer>
     </div>
   );
+};
+
+const industrialButtonStyle = {
+    background: 'rgba(0,0,0,0.85)',
+    backdropFilter: 'blur(15px)',
+    border: '2px solid #ffd700',
+    color: '#ffd700',
+    padding: '15px 35px',
+    borderRadius: '100px',
+    fontSize: '0.75rem',
+    fontWeight: '950',
+    letterSpacing: '2px',
+    cursor: 'pointer',
+    transition: '0.3s',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.9)'
 };
 
 export default VideoVault;
