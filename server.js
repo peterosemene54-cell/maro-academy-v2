@@ -40,6 +40,25 @@ app.post('/api/register', async (req, res) => {
         res.status(500).send(error);
     }
 });
+// 🔑 LOGIN ROUTE
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        // Search for the user in the database
+        const user = await User.findOne({ email, password });
+        
+        if (user) {
+            // ✅ Success! Send user data including 'isPaid' status
+            res.json(user);
+        } else {
+            // ❌ Fail!
+            res.status(401).json({ message: "Invalid email or password" });
+        }
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
 
 // 🔑 3. LOGIN ROUTE (The Entrance Gate)
 app.post('/api/login', async (req, res) => {
