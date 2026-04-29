@@ -32,35 +32,25 @@ const Login = ({ setUser }) => {
             } else {
                 navigate("/access-denied");
             }
-        } catch (error) {
-           // alert("Oga, something is wrong! Check your details or internet. ❌");
-           const msg = error.response?.data?.message || "Connection timed out. Please try again.";
-setErrorMessage(msg);
+} catch (error) {
+    // 📢 This line grabs the "This account is not registered..." message from your image
+    const professionalMessage = error.response?.data?.message || "Connection error. Please try again.";
+    
+    // 🔐 This shows the message in the pop-up
+    alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");
+}
 
-        } finally {
+finally {
             setLoading(false);
         }
-    };
+    }
 
     return (
         <div style={{ padding: '50px 20px', textAlign: 'center', fontFamily: 'Arial' }}>
             <div style={{ maxWidth: '400px', margin: '0 auto', background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
                 <h2 style={{ color: '#333' }}>🔐 LOGIN TO WATCH TUTORIAL VIDEOS</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>Enter your details to enter the academy.</p>
-                {errorMessage && (
-    <div style={{ 
-        background: '#ffebee', 
-        color: '#c62828', 
-        padding: '10px', 
-        borderRadius: '5px', 
-        marginBottom: '15px',
-        border: '1px solid #ef9a9a',
-        fontSize: '0.9rem',
-        fontWeight: 'bold'
-    }}>
-        ⚠️ {errorMessage}
-    </div>
-)}
+                
                 <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <input 
                         type="email" 
