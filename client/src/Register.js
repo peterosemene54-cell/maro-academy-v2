@@ -48,6 +48,15 @@ const Register = () => {
                     {loading ? "PROCESSING..." : "REGISTER & PAY ₦10,000"}
                 </button>
             </form>
+            <p style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.9rem' }}>
+    Already have an account? 
+    <span 
+        onClick={() => window.location.href = "/login"} 
+        style={{ color: 'blue', cursor: 'pointer', fontWeight: 'bold', marginLeft: '5px' }}>
+        Login here
+    </span>
+</p>
+
         </div>
     );
 };
