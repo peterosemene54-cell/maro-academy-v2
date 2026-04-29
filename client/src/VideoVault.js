@@ -20,7 +20,7 @@ const VideoVault = ({ user }) => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   
   const navigate = useNavigate();
-  const API_URL = "https://onrender.com";
+  const API_URL = "https://maro-academy-v2.onrender.com";
 
   // 🛡️ SECURITY PROTOCOL: GLOBAL SOURCE-LOCK & RIGHT-CLICK SHIELD
   useEffect(() => {
@@ -161,7 +161,7 @@ const VideoVault = ({ user }) => {
               {/* 🚀 THE BRILLIANCE PLAYER ENGINE (4K FORCED CLARITY) */}
               <iframe 
                 title="Maro Academy Secure 4K Stream"
-                src={`https://youtube.com{activeVideo.videoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0`}
+                src={`https://youtube.com/embed/${activeVideo.videoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0`}
                 style={{ 
                   position: 'absolute', top: '-10%', left: '-1%', 
                   width: '102%', height: '120%', border: 'none',
