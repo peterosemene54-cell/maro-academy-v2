@@ -32,16 +32,15 @@ const Login = ({ setUser }) => {
             } else {
                 navigate("/access-denied");
             }
-} catch (error) {
-    // 📢 This line grabs the "This account is not registered..." message from your image
-    const professionalMessage = error.response?.data?.message || "Connection error. Please check your internet.";
-    // 🔐 This shows the message in the pop-up
-    alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");
-}
-
-finally {
-            setLoading(false);
-        }
+    } catch (error) {
+        // 📢 This grabs the professional message from your server
+        const professionalMessage = error.response?.data?.message || "Connection error. Please check your internet.";
+        
+        // 🔐 This is the ONLY alert that should be here
+        alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");
+    } finally {
+        setLoading(false);
+    }
     }
 
     return (
