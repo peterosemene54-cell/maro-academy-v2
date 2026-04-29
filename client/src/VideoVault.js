@@ -152,7 +152,7 @@ const VideoVault = ({ user }) => {
               <iframe 
                 id="vault-player-core"
                 title="Maro Academy Secure Stream"
-                src={`https://youtube.com/embedd/${activeVideo.videoId}?enablejsapi=1&modestbranding=1&rel=0&controls=0&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0&disablekb=1&autoplay=1`}
+                src={`https://youtube.com/embed/${activeVideo.videoId}?enablejsapi=1&modestbranding=1&rel=0&controls=0&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0&disablekb=1&autoplay=1`}
                 style={iframeStyle}
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
