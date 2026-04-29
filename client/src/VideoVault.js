@@ -12,6 +12,7 @@ const VideoVault = ({ user }) => {
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState(true);
 
+
   const navigate = useNavigate();
   const iframeRef = useRef(null);
 
@@ -222,16 +223,41 @@ const VideoVault = ({ user }) => {
     }
 
   };
+const resumeVideo = useCallback(() => {
 
-  useEffect(() => {
+  if (!activeVideo) return;
 
-    const timer =
-      setTimeout(resumeVideo, 2000);
+  const savedTime =
+    localStorage.getItem(
+      `progress_${activeVideo._id}`
+    );
 
-    return () =>
-      clearTimeout(timer);
+  if (savedTime && iframeRef.current) {
 
-  }, [activeVideo]);
+    iframeRef.current.contentWindow.postMessage(
+      JSON.stringify({
+        event: "command",
+        func: "seekTo",
+        args: [parseFloat(savedTime), true]
+      }),
+      "*"
+    );
+
+  }
+
+}, [activeVideo]);
+ useEffect(() => {
+
+  const timer = setTimeout(() => {
+
+    resumeVideo();
+
+  }, 2000);
+
+  return () => clearTimeout(timer);
+
+}, [resumeVideo]);
+
 
   /* ===============================
      SAVE PROGRESS INTERVAL
