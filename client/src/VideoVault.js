@@ -50,6 +50,7 @@ const VideoVault = ({ user }) => {
   // DATA INITIALIZATION
   // ===============================
   const initializeVault = useCallback(async () => {
+    
     if (!user) {
       navigate('/login');
       return;

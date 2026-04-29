@@ -4,7 +4,17 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+//app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',
+  /\.vercel\.app$/  // This matches ALL your Vercel preview links
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
 app.use(express.json());
 
 // 🔐 THE MIGHTY DATABASE CONNECTION
