@@ -34,8 +34,7 @@ const Login = ({ setUser }) => {
             }
 } catch (error) {
     // 📢 This line grabs the "This account is not registered..." message from your image
-    const professionalMessage = error.response?.data?.message || "Connection error. Please try again.";
-    
+    const professionalMessage = error.response?.data?.message || "Connection error. Please check your internet.";
     // 🔐 This shows the message in the pop-up
     alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");
 }
