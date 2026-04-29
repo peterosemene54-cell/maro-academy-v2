@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 
 const API_URL = "https://maro-academy-v2.onrender.com";
 
+
 const Login = ({ setUser }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
+
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
@@ -30,7 +33,10 @@ const Login = ({ setUser }) => {
                 navigate("/access-denied");
             }
         } catch (error) {
-            alert("Oga, something is wrong! Check your details or internet. ❌");
+           // alert("Oga, something is wrong! Check your details or internet. ❌");
+           const msg = error.response?.data?.message || "Connection timed out. Please try again.";
+setErrorMessage(msg);
+
         } finally {
             setLoading(false);
         }
@@ -41,7 +47,20 @@ const Login = ({ setUser }) => {
             <div style={{ maxWidth: '400px', margin: '0 auto', background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
                 <h2 style={{ color: '#333' }}>🔐 LOGIN TO WATCH TUTORIAL VIDEOS</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>Enter your details to enter the academy.</p>
-                
+                {errorMessage && (
+    <div style={{ 
+        background: '#ffebee', 
+        color: '#c62828', 
+        padding: '10px', 
+        borderRadius: '5px', 
+        marginBottom: '15px',
+        border: '1px solid #ef9a9a',
+        fontSize: '0.9rem',
+        fontWeight: 'bold'
+    }}>
+        ⚠️ {errorMessage}
+    </div>
+)}
                 <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <input 
                         type="email" 

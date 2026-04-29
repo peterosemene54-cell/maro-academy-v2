@@ -41,21 +41,24 @@ app.post('/api/register', async (req, res) => {
     }
 });
 // 🔑 LOGIN ROUTE
+// 🔑 UPDATED LOGIN ROUTE IN SERVER.JS
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        // Search for the user in the database
-        const user = await User.findOne({ email, password });
-        
-        if (user) {
-            // ✅ Success! Send user data including 'isPaid' status
-            res.json(user);
-        } else {
-            // ❌ Fail!
-            res.status(401).json({ message: "Invalid email or password" });
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            // Instead of "user not found", we say something more professional
+            return res.status(404).json({ message: "This account is not registered in our database." });
         }
+
+        if (user.password !== password) {
+            return res.status(401).json({ message: "Invalid credentials. Please verify your password." });
+        }
+
+        res.json(user);
     } catch (error) {
-        res.status(500).send(error);
+        res.status(500).json({ message: "Our security systems are currently verifying. Please try again." });
     }
 });
 
