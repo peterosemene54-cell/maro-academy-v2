@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 // YOUR LIVE RENDER LINK
-const API_URL = "https://onrender.com";
+const API_URL = " https://maro-academy-v2.onrender.com";
 
 const Admin = () => {
     const [students, setStudents] = useState([]);
