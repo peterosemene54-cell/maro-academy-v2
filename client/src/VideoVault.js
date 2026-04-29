@@ -20,7 +20,7 @@ const VideoVault = ({ user }) => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   
   const navigate = useNavigate();
-  const API_URL = "https://onrender.com";
+  const API_URL = "https://maro-academy-v2.onrender.com";
 
   // 🛡️ SECURITY PROTOCOL: GLOBAL SOURCE-LOCK & RIGHT-CLICK SHIELD
   useEffect(() => {
@@ -184,7 +184,7 @@ const VideoVault = ({ user }) => {
               <iframe 
                 id="vault-player-core"
                 title="Maro Academy Secure Stream"
-                src={`https://youtube.com{activeVideo.videoId}?enablejsapi=1&modestbranding=1&rel=0&controls=0&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0&disablekb=1`}
+                src={`https://youtube.com/embed/${activeVideo.videoId}?enablejsapi=1&modestbranding=1&rel=0&controls=0&showinfo=0&iv_load_policy=3&vq=hd1080&fs=0&disablekb=1`}
                 style={{ 
                   position: 'absolute', top: '-10%', left: '-1%', 
                   width: '102%', height: '120%', border: 'none',
