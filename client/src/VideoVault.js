@@ -200,29 +200,7 @@ const VideoVault = ({ user }) => {
      RESUME PROGRESS
   =============================== */
 
-  const resumeVideo = () => {
-
-    if (!activeVideo) return;
-
-    const savedTime =
-      localStorage.getItem(
-        `progress_${activeVideo._id}`
-      );
-
-    if (savedTime && iframeRef.current) {
-
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({
-          event: 'command',
-          func: 'seekTo',
-          args: [parseFloat(savedTime), true]
-        }),
-        '*'
-      );
-
-    }
-
-  };
+  
 const resumeVideo = useCallback(() => {
 
   if (!activeVideo) return;
