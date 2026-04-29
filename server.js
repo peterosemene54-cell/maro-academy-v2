@@ -64,7 +64,7 @@ app.post('/api/login', async (req, res) => {
 
 
 // 🔑 3. LOGIN ROUTE (The Entrance Gate)
-app.post('/api/login', async (req, res) => {
+/*app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email, password });
@@ -76,7 +76,7 @@ app.post('/api/login', async (req, res) => {
     } catch (error) {
         res.status(500).send(error);
     }
-});
+});*/
 
 // ✅ FETCH ALL STUDENTS FOR ADMIN
 app.get('/api/students', async (req, res) => {
