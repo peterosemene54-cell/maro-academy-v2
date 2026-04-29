@@ -97,7 +97,7 @@ const VideoVault = ({ user }) => {
       playerRef.current = new window.YT.Player(playerDivId, {
         videoId: activeVideo.videoId,
         playerVars: {
-          autoplay: 1,
+          autoplay: 0,
           controls: 0,          // NO RUBBISH YT CONTROLS
           modestbranding: 1,    // HIDE LOGO
           rel: 0,               // NO SUGGESTED VIDEOS
@@ -180,13 +180,17 @@ const VideoVault = ({ user }) => {
   };
 
   const togglePlayback = () => {
-    if (!playerRef.current) return;
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-    } else {
-      playerRef.current.playVideo();
-    }
-  };
+  if (!playerRef.current) return;
+
+  if (isPlaying) {
+    playerRef.current.pauseVideo(); // If playing, then PAUSE
+    setIsPlaying(false);
+  } else {
+    playerRef.current.playVideo();  // If paused, then PLAY
+    setIsPlaying(true);
+  }
+};
+
 
   const handleSelectVideo = (video) => {
     if (videoEnded) return; // Locked navigation
