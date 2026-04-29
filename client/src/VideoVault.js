@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 /**
  * 🏛️ MARO ACADEMY VIDEO VAULT
+ * Skip works via YouTube IFrame API (window.YT.Player)
  */
 
 const VideoVault = ({ user }) => {
@@ -11,11 +12,10 @@ const VideoVault = ({ user }) => {
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [videoEnded, setVideoEnded] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
 
   const navigate = useNavigate();
-  const iframeRef = useRef(null);
-  const playerReadyRef = useRef(false);
+  const playerRef = useRef(null);      // holds the YT.Player instance
+  const playerDivId = 'yt-player';     // div id the API attaches to
 
   const API_URL = "https://maro-academy-v2.onrender.com";
 
@@ -26,6 +26,18 @@ const VideoVault = ({ user }) => {
     const preventMenu = (e) => e.preventDefault();
     document.addEventListener("contextmenu", preventMenu);
     return () => document.removeEventListener("contextmenu", preventMenu);
+  }, []);
+
+  /* ===============================
+     LOAD YOUTUBE IFRAME API SCRIPT
+     Only loads once. Sets window.onYouTubeIframeAPIReady
+  =============================== */
+  useEffect(() => {
+    if (window.YT && window.YT.Player) return; // already loaded
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.body.appendChild(tag);
   }, []);
 
   /* ===============================
@@ -54,81 +66,95 @@ const VideoVault = ({ user }) => {
   }, [initializeVault]);
 
   /* ===============================
-     YOUTUBE MESSAGE LISTENER
+     CREATE / RECREATE YT PLAYER
+     Runs whenever activeVideo changes
   =============================== */
   useEffect(() => {
-    const handleMessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+    if (!activeVideo) return;
 
-        if (data?.info?.currentTime !== undefined && activeVideo) {
-          const t = data.info.currentTime;
-          setCurrentTime(t);
-          localStorage.setItem(`progress_${activeVideo._id}`, t);
-        }
+    // Destroy old player if it exists
+    if (playerRef.current) {
+      try { playerRef.current.destroy(); } catch (e) {}
+      playerRef.current = null;
+    }
 
-        if (data?.info?.playerState === 0) {
-          setVideoEnded(true);
-        }
+    setVideoEnded(false);
 
-        if (data?.event === 'onReady' || data?.info?.playerState !== undefined) {
-          playerReadyRef.current = true;
-        }
+    const savedTime = parseFloat(
+      localStorage.getItem(`progress_${activeVideo._id}`) || '0'
+    );
 
-      } catch (err) {}
+    const createPlayer = () => {
+      playerRef.current = new window.YT.Player(playerDivId, {
+        videoId: activeVideo.videoId,
+        playerVars: {
+          autoplay: 1,
+          rel: 0,
+          modestbranding: 1,
+          iv_load_policy: 3,
+          showinfo: 0,
+          color: 'white',
+          start: Math.floor(savedTime),
+          origin: window.location.origin,
+        },
+        events: {
+          onStateChange: (event) => {
+            // 0 = ended
+            if (event.data === 0) {
+              setVideoEnded(true);
+            }
+          },
+        },
+      });
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    // If API already ready, create immediately. Otherwise wait.
+    if (window.YT && window.YT.Player) {
+      createPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = createPlayer;
+    }
+
+    return () => {
+      // cleanup on unmount
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch (e) {}
+        playerRef.current = null;
+      }
+    };
   }, [activeVideo]);
 
   /* ===============================
-     SKIP FUNCTION
-  =============================== */
-  const handleSkip = (deltaSeconds) => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-    const newTime = Math.max(currentTime + deltaSeconds, 0);
-    iframe.contentWindow.postMessage(
-      JSON.stringify({ event: 'command', func: 'seekTo', args: [newTime, true] }), '*'
-    );
-    iframe.contentWindow.postMessage(
-      JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*'
-    );
-  };
-
-  /* ===============================
-     POLL CURRENT TIME EVERY 1s
+     SAVE PROGRESS EVERY 5s
   =============================== */
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!iframeRef.current) return;
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }), '*'
-      );
-    }, 1000);
+      if (!playerRef.current || !activeVideo) return;
+      try {
+        const t = playerRef.current.getCurrentTime();
+        if (t) {
+          localStorage.setItem(`progress_${activeVideo._id}`, t);
+        }
+      } catch (e) {}
+    }, 5000);
     return () => clearInterval(interval);
-  }, []);
-
-  /* ===============================
-     RESUME PROGRESS ON VIDEO CHANGE
-  =============================== */
-  const resumeVideo = useCallback(() => {
-    if (!activeVideo) return;
-    const savedTime = localStorage.getItem(`progress_${activeVideo._id}`);
-    if (savedTime && iframeRef.current) {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: 'command', func: 'seekTo', args: [parseFloat(savedTime), true] }), '*'
-      );
-    }
   }, [activeVideo]);
 
-  useEffect(() => {
-    setVideoEnded(false);
-    setCurrentTime(0);
-    const timer = setTimeout(() => resumeVideo(), 2500);
-    return () => clearTimeout(timer);
-  }, [activeVideo, resumeVideo]);
+  /* ===============================
+     SKIP — NOW ACTUALLY WORKS
+     Uses YT.Player API directly, no postMessage needed
+  =============================== */
+  const handleSkip = (deltaSeconds) => {
+    if (!playerRef.current) return;
+    try {
+      const current = playerRef.current.getCurrentTime();
+      const newTime = Math.max(current + deltaSeconds, 0);
+      playerRef.current.seekTo(newTime, true);
+      playerRef.current.playVideo();
+    } catch (e) {
+      console.error("Skip error:", e);
+    }
+  };
 
   /* ===============================
      SELECT VIDEO — blocked if ended
@@ -136,25 +162,6 @@ const VideoVault = ({ user }) => {
   const handleSelectVideo = (video) => {
     if (videoEnded) return;
     setActiveVideo(video);
-  };
-
-  /* ===============================
-     BUILD EMBED URL
-  =============================== */
-  const buildEmbedUrl = (videoId) => {
-    const params = new URLSearchParams({
-      enablejsapi: '1',
-      rel: '0',
-      modestbranding: '1',
-      iv_load_policy: '3',
-      disablekb: '0',
-      autoplay: '1',
-      controls: '1',
-      showinfo: '0',
-      color: 'white',
-      origin: window.location.origin,
-    });
-    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
   };
 
   /* ===============================
@@ -190,37 +197,31 @@ const VideoVault = ({ user }) => {
             <>
               <div style={styles.playerWrapper}>
 
-                <iframe
-                  ref={iframeRef}
-                  title="Video Player"
-                  src={buildEmbedUrl(activeVideo.videoId)}
-                  style={styles.iframe}
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                />
+                {/* YT API attaches to this div — NOT an iframe we create */}
+                <div id={playerDivId} style={styles.playerDiv} />
 
                 {/* ── BRANDING BLOCKERS ── */}
 
                 {/* Top-left: hides channel name + avatar */}
                 <div style={{
                   position: 'absolute', top: 0, left: 0,
-                  width: '55%', height: '64px',
-                  background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
+                  width: '60%', height: '70px',
+                  background: 'linear-gradient(to bottom, #000 30%, transparent 100%)',
                   zIndex: 5, pointerEvents: 'none',
                 }} />
 
-                {/* Top-right: hides YouTube top-right icons */}
+                {/* Top-right: hides YouTube icons */}
                 <div style={{
                   position: 'absolute', top: 0, right: 0,
-                  width: '120px', height: '64px',
-                  background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
+                  width: '160px', height: '70px',
+                  background: 'linear-gradient(to bottom, #000 30%, transparent 100%)',
                   zIndex: 5, pointerEvents: 'none',
                 }} />
 
                 {/* Bottom: hides "More videos" + YouTube logo */}
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0,
-                  width: '100%', height: '42px',
+                  width: '100%', height: '46px',
                   background: '#000',
                   zIndex: 5, pointerEvents: 'none',
                 }} />
@@ -243,14 +244,20 @@ const VideoVault = ({ user }) => {
               {/* SKIP CONTROLS */}
               <div style={styles.controls}>
                 <button
-                  style={styles.skipBtn}
+                  style={{
+                    ...styles.skipBtn,
+                    ...(videoEnded ? styles.skipBtnDisabled : {}),
+                  }}
                   onClick={() => handleSkip(-10)}
                   disabled={videoEnded}
                 >
                   ⏪ Back 10s
                 </button>
                 <button
-                  style={styles.skipBtn}
+                  style={{
+                    ...styles.skipBtn,
+                    ...(videoEnded ? styles.skipBtnDisabled : {}),
+                  }}
                   onClick={() => handleSkip(10)}
                   disabled={videoEnded}
                 >
@@ -361,13 +368,12 @@ const styles = {
     marginBottom: '16px',
     background: '#000',
   },
-  iframe: {
+  playerDiv: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
-    border: 'none',
     borderRadius: '10px',
   },
   endOverlay: {
@@ -415,6 +421,10 @@ const styles = {
     cursor: 'pointer',
     fontSize: '0.95rem',
     transition: 'background 0.2s',
+  },
+  skipBtnDisabled: {
+    opacity: 0.4,
+    cursor: 'not-allowed',
   },
   videoTitle: {
     color: '#fff',
@@ -484,5 +494,3 @@ const styles = {
 };
 
 export default VideoVault;
-
-
