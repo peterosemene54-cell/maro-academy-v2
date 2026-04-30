@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 
 const API_URL = "https://maro-academy-v2.onrender.com";
 
-
 const Login = ({ setUser }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -19,27 +18,26 @@ const Login = ({ setUser }) => {
             // 🚀 TALKING TO YOUR RENDER SERVER
             const res = await axios.post(`${API_URL}/api/login`, { email, password });
             
-            // 🔑 Getting the user data (including that isPaid status!)
+            // 🔑 Getting the user data (including isPaid + expiryDate!)
             const loggedInUser = res.data;
 
-            // Save user to the App state (This is the 'Hallway' connection)
+            // Save user to App state
             setUser(loggedInUser);
 
-            // 🛡️ THE OGA LOGIC CHECK
-            if (loggedInUser.isPaid) {
-                navigate("/video-vault");
-            } else {
-                navigate("/access-denied");
-            }
-    } catch (error) {
-        // 📢 This grabs the professional message from your server
-        const professionalMessage = error.response?.data?.message || "Connection error. Please check your internet.";
-        
-        // 🔐 This is the ONLY alert that should be here
-        alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");
-    } finally {
-        setLoading(false);
-    }
+            // 🛡️ ALWAYS SEND TO VAULT - App.js decides if they can enter!
+            // FREE MODE = everyone gets in
+            // PAID MODE = App.js checks isPaid and expiryDate
+            navigate("/video-vault");
+
+        } catch (error) {
+            // 📢 Professional message from server
+            const professionalMessage = error.response?.data?.message || "Connection error. Please check your internet.";
+            
+            // 🔐 Security alert
+            alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -85,7 +83,5 @@ const Login = ({ setUser }) => {
         </div>
     );
 };
-
-
 
 export default Login;

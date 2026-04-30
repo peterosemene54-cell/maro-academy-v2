@@ -4,10 +4,10 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-//app.use(cors());
+
 const allowedOrigins = [
   'http://localhost:3000',
-  /\.vercel\.app$/  // This matches ALL your Vercel preview links
+  /\.vercel\.app$/
 ];
 
 app.use(cors({
@@ -17,7 +17,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// 🔐 THE MIGHTY DATABASE CONNECTION
+// 🔐 DATABASE CONNECTION
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('🚀 MONGODB CONNECTED SUCCESSFULLY!'))
   .catch(err => console.log('❌ DATABASE ERROR:', err));
@@ -27,11 +27,14 @@ const UserSchema = new mongoose.Schema({
     name: String,
     email: String,
     password: { type: String, required: true },
-    isPaid: { type: Boolean, default: false } 
+    isPaid: { type: Boolean, default: false },
+    // 🆕 EXPIRY DATES
+    paymentDate: { type: Date, default: null },
+    expiryDate: { type: Date, default: null }
 });
 const User = mongoose.model('User', UserSchema);
 
-// 🎬 2. VIDEO SCHEMA (For your Math Tutorials)
+// 🎬 2. VIDEO SCHEMA
 const VideoSchema = new mongoose.Schema({
     title: String,
     videoId: String,
@@ -39,6 +42,12 @@ const VideoSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 const Video = mongoose.model('Video', VideoSchema);
+
+// 🆕 3. SETTINGS SCHEMA (For free/paid mode switch)
+const SettingSchema = new mongoose.Schema({
+    paymentRequired: { type: Boolean, default: false }
+});
+const Setting = mongoose.model('Setting', SettingSchema);
 
 // 🚪 REGISTER ROUTE
 app.post('/api/register', async (req, res) => {
@@ -50,15 +59,14 @@ app.post('/api/register', async (req, res) => {
         res.status(500).send(error);
     }
 });
+
 // 🔑 LOGIN ROUTE
-// 🔑 UPDATED LOGIN ROUTE IN SERVER.JS
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
 
         if (!user) {
-            // Instead of "user not found", we say something more professional
             return res.status(404).json({ message: "This account is not registered in our database." });
         }
 
@@ -72,22 +80,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-
-// 🔑 3. LOGIN ROUTE (The Entrance Gate)
-/*app.post('/api/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email, password });
-        if (user) {
-            res.json(user); // Sends everything including isPaid status
-        } else {
-            res.status(401).json({ message: "Invalid email or password! ❌" });
-        }
-    } catch (error) {
-        res.status(500).send(error);
-    }
-});*/
-
 // ✅ FETCH ALL STUDENTS FOR ADMIN
 app.get('/api/students', async (req, res) => {
     try {
@@ -98,19 +90,35 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
-// ✅ APPROVE/DISAPPROVE A STUDENT
+// ✅ APPROVE/DISAPPROVE — NOW WITH 30 DAY EXPIRY!
 app.put('/api/students/:id/approve', async (req, res) => {
     try {
         const student = await User.findById(req.params.id);
         student.isPaid = !student.isPaid;
+
+        // 🆕 SET EXPIRY DATE WHEN APPROVING
+        if (student.isPaid) {
+            student.paymentDate = new Date();
+            // 30 days from now
+            student.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        } else {
+            // Clear dates when disapproving
+            student.paymentDate = null;
+            student.expiryDate = null;
+        }
+
         await student.save();
-        res.json({ message: "Status Updated!", isPaid: student.isPaid });
+        res.json({ 
+            message: "Status Updated!", 
+            isPaid: student.isPaid,
+            expiryDate: student.expiryDate 
+        });
     } catch (error) {
         res.status(500).send(error);
     }
 });
 
-// 📤 4. NEW: UPLOAD VIDEO ROUTE
+// 📤 UPLOAD VIDEO ROUTE
 app.post('/api/videos/upload', async (req, res) => {
     try {
         const newVideo = new Video(req.body);
@@ -121,11 +129,40 @@ app.post('/api/videos/upload', async (req, res) => {
     }
 });
 
-// 📥 5. NEW: FETCH VIDEOS FOR STUDENTS
+// 📥 FETCH VIDEOS FOR STUDENTS
 app.get('/api/videos', async (req, res) => {
     try {
-        const videos = await Video.find().sort({ createdAt: 1 }); // Sort by oldest first
+        const videos = await Video.find().sort({ createdAt: 1 });
         res.json(videos);
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
+// 🆕 GET SETTINGS (Free/Paid mode)
+app.get('/api/settings', async (req, res) => {
+    try {
+        let setting = await Setting.findOne();
+        if (!setting) {
+            setting = await Setting.create({ paymentRequired: false });
+        }
+        res.json(setting);
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
+// 🆕 UPDATE SETTINGS (Flip free/paid mode)
+app.put('/api/settings', async (req, res) => {
+    try {
+        let setting = await Setting.findOne();
+        if (!setting) {
+            setting = new Setting({ paymentRequired: req.body.paymentRequired });
+        } else {
+            setting.paymentRequired = req.body.paymentRequired;
+        }
+        await setting.save();
+        res.json(setting);
     } catch (error) {
         res.status(500).send(error);
     }

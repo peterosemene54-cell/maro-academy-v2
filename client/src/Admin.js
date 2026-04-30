@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-// YOUR LIVE RENDER LINK
 const API_URL = "https://maro-academy-v2.onrender.com";
 
 const Admin = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // 🎥 NEW STATE FOR VIDEO UPLOAD
     const [videoData, setVideoData] = useState({ title: '', videoId: '', description: '' });
     const [uploading, setUploading] = useState(false);
 
-    // 📥 1. FETCH ALL STUDENTS
+    // 🆕 FREE MODE STATE
+    const [paymentRequired, setPaymentRequired] = useState(false);
+
+    // 📥 FETCH ALL STUDENTS
     const fetchStudents = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/students`);
@@ -24,11 +24,22 @@ const Admin = () => {
         }
     };
 
+    // 🆕 FETCH PAYMENT MODE SETTING
+    const fetchSettings = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/api/settings`);
+            setPaymentRequired(res.data.paymentRequired);
+        } catch (error) {
+            console.error("Error fetching settings", error);
+        }
+    };
+
     useEffect(() => {
         fetchStudents();
+        fetchSettings(); // 🆕 FETCH SETTINGS ON LOAD
     }, []);
 
-    // ✅ 2. APPROVE/DISAPPROVE LOGIC
+    // ✅ APPROVE/DISAPPROVE LOGIC
     const toggleApproval = async (id) => {
         try {
             await axios.put(`${API_URL}/api/students/${id}/approve`);
@@ -38,14 +49,27 @@ const Admin = () => {
         }
     };
 
-    // 🎬 3. NEW: PUBLISH VIDEO LOGIC
+    // 🆕 TOGGLE PAYMENT MODE
+    const togglePaymentMode = async () => {
+        try {
+            const res = await axios.put(`${API_URL}/api/settings`, {
+                paymentRequired: !paymentRequired
+            });
+            setPaymentRequired(res.data.paymentRequired);
+            alert(`Payment mode is now ${res.data.paymentRequired ? 'ON 🔴 - Students must pay!' : 'OFF 🟢 - Everyone watches free!'}`);
+        } catch (error) {
+            alert("Error updating payment mode");
+        }
+    };
+
+    // 🎬 PUBLISH VIDEO LOGIC
     const handleVideoUpload = async (e) => {
         e.preventDefault();
         setUploading(true);
         try {
             await axios.post(`${API_URL}/api/videos/upload`, videoData);
             alert("Tutorial Published Successfully! 🚀🎬");
-            setVideoData({ title: '', videoId: '', description: '' }); // Clear form
+            setVideoData({ title: '', videoId: '', description: '' });
         } catch (error) {
             alert("Error publishing video. Check your server connection.");
         } finally {
@@ -69,6 +93,7 @@ const Admin = () => {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Status</th>
+                                <th>Expiry Date</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -79,6 +104,17 @@ const Admin = () => {
                                     <td>{s.email}</td>
                                     <td style={{ fontWeight: 'bold', color: s.isPaid ? 'green' : 'red' }}>
                                         {s.isPaid ? "APPROVED ✅" : "PENDING ⏳"}
+                                    </td>
+                                    {/* 🆕 SHOW EXPIRY DATE */}
+                                    <td style={{ color: '#666', fontSize: '0.9rem' }}>
+                                        {s.expiryDate 
+                                            ? new Date(s.expiryDate).toLocaleDateString('en-NG', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric'
+                                              })
+                                            : 'Not set'
+                                        }
                                     </td>
                                     <td>
                                         <button 
@@ -101,7 +137,42 @@ const Admin = () => {
                 </div>
             </div>
 
-            {/* --- 📤 NEW: THE PUBLISH MENU --- */}
+            {/* --- 🆕 PAYMENT MODE TOGGLE --- */}
+            <div style={{ 
+                marginTop: '30px', 
+                padding: '30px', 
+                border: `2px solid ${paymentRequired ? '#ff4d4d' : '#28a745'}`, 
+                borderRadius: '15px', 
+                background: '#f9f9f9' 
+            }}>
+                <h2 style={{ color: '#333', margin: '0 0 10px 0' }}>
+                    💰 Payment Mode Control
+                </h2>
+                <p style={{ color: '#666', marginBottom: '20px' }}>
+                    Current Status: <b style={{ color: paymentRequired ? 'red' : 'green' }}>
+                        {paymentRequired ? '🔴 PAYMENT REQUIRED — Students must pay to watch' : '🟢 FREE ACCESS — Everyone watches for free'}
+                    </b>
+                </p>
+                <button
+                    onClick={togglePaymentMode}
+                    style={{
+                        background: paymentRequired ? '#28a745' : '#ff4d4d',
+                        color: 'white',
+                        padding: '15px 30px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        fontSize: '1rem'
+                    }}>
+                    {paymentRequired 
+                        ? '🟢 SWITCH TO FREE MODE' 
+                        : '🔴 SWITCH TO PAYMENT MODE'
+                    }
+                </button>
+            </div>
+
+            {/* --- 📤 PUBLISH MENU --- */}
             <div style={{ marginTop: '50px', padding: '30px', border: '2px solid #333', borderRadius: '15px', background: '#f9f9f9' }}>
                 <h2 style={{ color: '#333', margin: '0 0 10px 0' }}>📤 Publish Math Tutorial</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>This sends the video straight to the Student Video Vault.</p>

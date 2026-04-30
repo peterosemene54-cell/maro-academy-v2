@@ -1,8 +1,12 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const AccessDenied = () => {
     const navigate = useNavigate();
+
+    // 🔍 CHECK WHY THEY ARE HERE
+    const location = useLocation();
+    const isExpired = location.state?.expired;
 
     return (
         <div style={{ 
@@ -20,12 +24,19 @@ const AccessDenied = () => {
                 borderRadius: '15px', 
                 boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
             }}>
-                <h1 style={{ color: '#d9534f', fontSize: '3.5rem', marginBottom: '10px' }}>🛑</h1>
-                <h2 style={{ color: '#d9534f', fontSize: '2rem', marginBottom: '20px' }}>ACCESS DENIED</h2>
+                <h1 style={{ color: '#d9534f', fontSize: '3.5rem', marginBottom: '10px' }}>
+                    {isExpired ? '⏰' : '🛑'}
+                </h1>
+
+                <h2 style={{ color: '#d9534f', fontSize: '2rem', marginBottom: '20px' }}>
+                    {isExpired ? 'SUBSCRIPTION EXPIRED' : 'ACCESS DENIED'}
+                </h2>
                 
                 <p style={{ fontSize: '1.2rem', color: '#555', lineHeight: '1.6' }}>
-                    Oga hasn't cleared your account to watch the tutorials yet. 
-                    This usually happens when your school fees (payment) haven't been verified.
+                    {isExpired 
+                        ? 'Your 30-day access has ended. Renew your subscription to continue watching tutorials and keep your progress going! 💪'
+                        : "Oga hasn't cleared your account to watch the tutorials yet. This usually happens when your school fees (payment) haven't been verified."
+                    }
                 </p>
 
                 <div style={{ 
@@ -35,11 +46,24 @@ const AccessDenied = () => {
                     borderRadius: '10px',
                     textAlign: 'left'
                 }}>
-                    <h3 style={{ color: '#333' }}>How to Unlock the Vault:</h3>
+                    <h3 style={{ color: '#333' }}>
+                        {isExpired ? 'How to Renew Your Access:' : 'How to Unlock the Vault:'}
+                    </h3>
                     <ul style={{ color: '#666', lineHeight: '2' }}>
-                        <li>1. Transfer the fee to <b>Moniepoint: [YOUR ACCOUNT NUMBER]</b></li>
-                        <li>2. Take a screenshot of the receipt.</li>
-                        <li>3. Send it to Oga on WhatsApp for instant approval.</li>
+                        {isExpired ? (
+                            <>
+                                <li>1. Transfer the renewal fee to <b>Moniepoint: [YOUR ACCOUNT NUMBER]</b></li>
+                                <li>2. Take a screenshot of the receipt.</li>
+                                <li>3. Send it to Oga on WhatsApp for instant renewal.</li>
+                                <li>4. Your 30 days restarts immediately after approval! ✅</li>
+                            </>
+                        ) : (
+                            <>
+                                <li>1. Transfer the fee to <b>Moniepoint: [YOUR ACCOUNT NUMBER]</b></li>
+                                <li>2. Take a screenshot of the receipt.</li>
+                                <li>3. Send it to Oga on WhatsApp for instant approval.</li>
+                            </>
+                        )}
                     </ul>
                 </div>
 
@@ -56,7 +80,10 @@ const AccessDenied = () => {
                             fontWeight: 'bold', 
                             fontSize: '1.1rem' 
                         }}>
-                        SEND PAYMENT RECEIPT ON WHATSAPP 💰
+                        {isExpired 
+                            ? 'RENEW SUBSCRIPTION ON WHATSAPP 🔄' 
+                            : 'SEND PAYMENT RECEIPT ON WHATSAPP 💰'
+                        }
                     </button>
 
                     <button 

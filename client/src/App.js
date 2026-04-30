@@ -9,18 +9,40 @@ const VideoVault = lazy(() => import('./VideoVault'));
 const AccessDenied = lazy(() => import('./AccessDenied'));
 
 function App() {
-  // 🔐 This state holds the "Oga Key" (the user data)
-  const [user, setUser] = useState(null);
+  // 🔐 FIXED: Reads localStorage IMMEDIATELY - no more reload bug!
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('maroUser');
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  // Check if user was already logged in (saves them from logging in every 5 mins)
+  // 🆓 FREE MODE SWITCH - false = everyone watches free!
+  const [paymentRequired, setPaymentRequired] = useState(() => {
+    const mode = localStorage.getItem('paymentRequired');
+    return mode ? JSON.parse(mode) : false;
+  });
+
+  // 🌐 FETCH PAYMENT MODE FROM SERVER ON LOAD
   useEffect(() => {
-    const savedUser = localStorage.getItem('maroUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const fetchPaymentMode = async () => {
+      try {
+        const res = await fetch("https://maro-academy-v2.onrender.com/api/settings");
+        const data = await res.json();
+        setPaymentRequired(data.paymentRequired);
+        localStorage.setItem('paymentRequired', JSON.stringify(data.paymentRequired));
+      } catch (error) {
+        console.error("Could not fetch payment mode", error);
+      }
+    };
+    fetchPaymentMode();
   }, []);
 
-  // Function to lock the suitcase when they log in
+  // ⏰ CHECK IF SUBSCRIPTION HAS EXPIRED
+  const isSubscriptionExpired = (user) => {
+    if (!user || !user.expiryDate) return false;
+    return new Date() > new Date(user.expiryDate);
+  };
+
+  // 🔑 Function to lock the suitcase when they log in
   const handleLogin = (userData) => {
     setUser(userData);
     localStorage.setItem('maroUser', JSON.stringify(userData));
@@ -41,13 +63,26 @@ function App() {
             {/* 🔒 Access Denied Page */}
             <Route path="/access-denied" element={<AccessDenied />} />
 
-            {/* 🎬 THE VIP ROOM (Only for Paid Students) */}
+            {/* 🎬 THE VIP ROOM */}
             <Route 
               path="/video-vault" 
               element={
-                user ? (
-                  user.isPaid ? <VideoVault user={user} /> : <Navigate to="/access-denied" />
+                !paymentRequired ? (
+                  // 🆓 FREE MODE - everyone watches free!
+                  <VideoVault user={user} />
+                ) : user ? (
+                  isSubscriptionExpired(user) ? (
+                    // ⏰ EXPIRED - subscription ended!
+                    <Navigate to="/access-denied" state={{ expired: true }} />
+                  ) : user.isPaid ? (
+                    // ✅ PAID AND ACTIVE - welcome!
+                    <VideoVault user={user} />
+                  ) : (
+                    // ❌ NOT PAID - go pay first!
+                    <Navigate to="/access-denied" />
+                  )
                 ) : (
+                  // 🔒 NOT LOGGED IN - go login first!
                   <Navigate to="/login" />
                 )
               } 
@@ -56,7 +91,7 @@ function App() {
             {/* 🔐 The Oga's Secret Vault (Admin) */}
             <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
 
-            {/* 🚫 Auto-Redirect: If someone types a wrong link, take them back home */}
+            {/* 🚫 Auto-Redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
