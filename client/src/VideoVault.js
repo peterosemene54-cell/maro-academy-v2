@@ -88,12 +88,15 @@ const VideoVault = ({ user }) => {
             autoplay: 0,
             controls: 0,
             modestbranding: 1,
+            showinfo: 0,
             rel: 0,
             disablekb: 1,
             iv_load_policy: 3,
             fs: 0,
             playsinline: 1,
             origin: window.location.origin,
+            color: 'white',
+            widget_referrer: window.location.origin,
           },
           events: {
             onReady: () => {
@@ -203,7 +206,7 @@ const VideoVault = ({ user }) => {
   };
 
   const handleSelectVideo = (video) => {
-    if (activeVideo?._id === video._id) return; // already selected
+    if (activeVideo?._id === video._id) return;
     setVideoEnded(false);
     setActiveVideo(video);
   };
@@ -232,7 +235,7 @@ const VideoVault = ({ user }) => {
       <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row' }}>
 
         {/* LEFT — THE MIGHTY PLAYER SECTION */}
-        <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 3.5 }}>
+        <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 5 }}>
           {activeVideo && (
             <>
               <div style={styles.playerWrapper}>
@@ -282,7 +285,7 @@ const VideoVault = ({ user }) => {
         </div>
 
         {/* RIGHT — SIDEBAR CURRICULUM */}
-        <div style={{ ...styles.sidebar, width: isMobile ? '100%' : '380px' }}>
+        <div style={{ ...styles.sidebar, width: isMobile ? '100%' : '300px' }}>
           <div style={styles.sidebarHeader}>
             <h3 style={styles.sidebarTitle}>COURSE CURRICULUM</h3>
             <span style={styles.videoCount}>{videos.length} LESSONS</span>
@@ -349,8 +352,8 @@ const styles = {
 
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
-  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '50%', height: '80px', background: 'linear-gradient(to bottom, #000 40%, transparent 100%)', zIndex: 11 },
-  topRightBlocker: { position: 'absolute', top: 0, right: 0, width: '150px', height: '80px', background: 'linear-gradient(to bottom, #000 40%, transparent 100%)', zIndex: 11 },
+  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '55%', height: '90px', background: 'linear-gradient(to bottom, #000 60%, transparent 100%)', zIndex: 11 },
+  topRightBlocker: { position: 'absolute', top: 0, right: 0, width: '220px', height: '90px', background: 'linear-gradient(to bottom, #000 60%, transparent 100%)', zIndex: 11 },
   bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '55px', background: '#000', zIndex: 11 },
   endOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   endCard: { textAlign: 'center', padding: '40px' },
