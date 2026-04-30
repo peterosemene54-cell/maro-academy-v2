@@ -219,8 +219,8 @@ const VideoVault = ({ user }) => {
         <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 3.5 }}>
           {activeVideo && (
             <>
-              <div style={styles.playerWrapper}>
-                <div id={playerDivId} style={styles.playerDiv} />
+              <div style={styles.playerWrapper} key={activeVideo?._id}>
+  <div id={playerDivId} style={styles.playerDiv} />
                 <div style={styles.mightyShield} />
                 
                 {/* BRANDING BLOCKERS */}
