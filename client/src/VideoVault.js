@@ -2,175 +2,145 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-/**
- * ============================================================================
- * 🏛️ MARO ACADEMY PRO: THE MIGHTY ARCHITECT MASTER VAULT (v4.0)
- * 🚀 ENGINEERED FOR: OGA PETER OSEMENE
- * 🛡️ CORE: ADVANCED REACT ENGINE + YOUTUBE IFRAME DOMAIN LOCK
- * ⚡ PERFORMANCE: 99%+ LIGHTHOUSE RATING
- * ============================================================================
- */
-
 const VideoVault = ({ user }) => {
-  // --------------------------------------------------------------------------
-  // 🏛️ MASTER STATE MANAGEMENT (THE ENGINE ROOM)
-  // --------------------------------------------------------------------------
   const [videos, setVideos] = useState([]);
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [videoEnded, setVideoEnded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [watchProgress, setWatchProgress] = useState(0);
-  const [sidebarVisible, setSidebarVisible] = useState(window.innerWidth >= 1024);
-  const [vaultEntryTime] = useState(new Date().toLocaleTimeString());
 
   const navigate = useNavigate();
   const playerRef = useRef(null);
-  const playerDivId = 'mighty-vault-cinema-engine';
-  const API_URL = "https://maro-academy-v2.onrender.com";
+  const playerDivId = 'mighty-vault-player';
+  const API_URL = "https://onrender.com";
 
-  // --------------------------------------------------------------------------
-  // 🛡️ THE MIGHTY ANTI-SABOTAGE & ADAPTIVE ENGINE
-  // --------------------------------------------------------------------------
+  // ===============================
+  // 🛡️ SECURITY & RESPONSIVENESS
+  // ===============================
   useEffect(() => {
-    const handleMightyEnvironment = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 1024);
-      if (width < 1024) setSidebarVisible(false);
-      else setSidebarVisible(true);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
 
-    const killIntruders = (e) => {
-      // 1. Block Context Menu (Right Click)
+    const preventSabotage = (e) => {
       if (e.type === "contextmenu") e.preventDefault();
-      
-      // 2. Block Inspect Elements & Source Code Stealing
       if (
-        e.keyCode === 123 || // F12
-        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || // Ctrl+Shift+I/J/C
-        (e.ctrlKey && e.keyCode === 85) // Ctrl+U (Source)
+        e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
+        (e.ctrlKey && e.keyCode === 85)
       ) {
         e.preventDefault();
         return false;
       }
     };
 
-    window.addEventListener('resize', handleMightyEnvironment);
-    document.addEventListener("contextmenu", killIntruders);
-    document.addEventListener("keydown", killIntruders);
-    
+    document.addEventListener("contextmenu", preventSabotage);
+    document.addEventListener("keydown", preventSabotage);
+
     return () => {
-      window.removeEventListener('resize', handleMightyEnvironment);
-      document.removeEventListener("contextmenu", killIntruders);
-      document.removeEventListener("keydown", killIntruders);
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener("contextmenu", preventSabotage);
+      document.removeEventListener("keydown", preventSabotage);
     };
   }, []);
 
-  // --------------------------------------------------------------------------
-  // 🔑 THE VAULT ACCESS & DATA RETRIEVAL
-  // --------------------------------------------------------------------------
-  const decryptVaultData = useCallback(async () => {
+  // ===============================
+  // 🔑 DATA INITIALIZATION
+  // ===============================
+  const initializeVault = useCallback(async () => {
     if (!user) {
       navigate('/login');
       return;
     }
     try {
       const response = await axios.get(`${API_URL}/api/videos`);
-      const mightyVideos = response.data;
-      
-      // Sort and clean the curriculum
-      const sortedCurriculum = mightyVideos.sort((a, b) => 
-        new Date(a.createdAt) - new Date(b.createdAt)
-      );
-
-      setVideos(sortedCurriculum);
-      
-      // Auto-load the first lesson if none is active
-      if (sortedCurriculum.length > 0) {
-        setActiveVideo(sortedCurriculum[0]);
+      const data = response.data;
+      setVideos(data);
+      if (data.length > 0) {
+        setActiveVideo(data[0]);
       }
-      
-      // Smooth entrance delay
-      setTimeout(() => setLoading(false), 1800);
+      setTimeout(() => setLoading(false), 1200);
     } catch (error) {
-      console.error("🚨 CRITICAL VAULT ACCESS FAILURE:", error);
+      console.error("🚨 VAULT ERROR:", error);
       setLoading(false);
     }
   }, [user, navigate]);
 
   useEffect(() => {
-    decryptVaultData();
-  }, [decryptVaultData]);
+    initializeVault();
+  }, [initializeVault]);
 
-  // --------------------------------------------------------------------------
-  // 🎥 THE CINEMA ENGINE (YOUTUBE MASTER HANDSHAKE)
-  // --------------------------------------------------------------------------
+  // ===============================
+  // 🎥 THE MIGHTY PLAYER ENGINE (FIXED)
+  // ===============================
   useEffect(() => {
     if (!activeVideo) return;
 
-    // Destroy previous instance to prevent cross-talk and memory leaks
+    // Destroy any existing player first
     if (playerRef.current) {
-      try { playerRef.current.destroy(); } catch (e) { console.log("Silent Destroy"); }
+      try { playerRef.current.destroy(); } catch (e) {}
       playerRef.current = null;
     }
 
     setVideoEnded(false);
     setIsPlaying(false);
-    setWatchProgress(0);
 
-    const savedTimeStamp = parseFloat(
-      localStorage.getItem(`mighty_progress_${activeVideo._id}`) || '0'
+    const savedTime = parseFloat(
+      localStorage.getItem(`progress_${activeVideo._id}`) || '0'
     );
 
-    const initializeCinemaPlayer = () => {
-      if (!window.YT || !window.YT.Player) return;
-      
-      playerRef.current = new window.YT.Player(playerDivId, {
-        videoId: activeVideo.videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 0,          // MIGHTY SHIELD: NO YT PLAYER CONTROLS
-          modestbranding: 1,    // HIDE BRANDING WITCH
-          rel: 0,               // NO RELATED RUBBISH
-          disablekb: 1,         // KILL KEYBOARD HACKS
-          iv_load_policy: 3,    // HIDE ANNOTATIONS
-          fs: 0,                // NO FULLSCREEN (UI INTEGRITY)
-          playsinline: 1,       // MOBILE OPTIMIZATION
-          start: Math.floor(savedTimeStamp),
-          origin: window.location.origin,
-          enablejsapi: 1,
-          widget_referrer: window.location.href,
-        },
-        events: {
-          onReady: (event) => {
-            console.log(`🏛️ CINEMA READY: MODULE [${activeVideo.title}]`);
+    const createPlayer = () => {
+      // ✅ FIX: Always defer with setTimeout so React has flushed the DOM
+      // and the player div is guaranteed to exist before YT.Player runs.
+      setTimeout(() => {
+        const el = document.getElementById(playerDivId);
+        if (!el || !window.YT || !window.YT.Player) return;
+
+        playerRef.current = new window.YT.Player(playerDivId, {
+          videoId: activeVideo.videoId,
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            disablekb: 1,
+            iv_load_policy: 3,
+            fs: 0,
+            playsinline: 1,
+            start: Math.floor(savedTime),
+            origin: window.location.origin,
           },
-          onStateChange: (event) => {
-            // State Mapping
-            if (event.data === window.YT.PlayerState.ENDED) {
-              setVideoEnded(true);
-              setIsPlaying(false);
-            }
-            if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-            if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
-            if (event.data === window.YT.PlayerState.BUFFERING) console.log("⏳ Buffering...");
+          events: {
+            onReady: () => {
+              console.log("🏛️ MIGHTY ENGINE READY");
+            },
+            onStateChange: (event) => {
+              if (event.data === window.YT.PlayerState.ENDED) {
+                setVideoEnded(true);
+                setIsPlaying(false);
+              }
+              if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
+              if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
+            },
           },
-          onError: (e) => {
-            console.error("🚨 PLAYER HANDSHAKE ERROR:", e.data);
-          }
-        },
-      });
+        });
+      }, 150); // small delay so DOM div is ready
     };
 
-    // Script injection logic
     if (window.YT && window.YT.Player) {
-      initializeCinemaPlayer();
+      // API already loaded — just create the player (with DOM-ready delay)
+      createPlayer();
     } else {
-      const mightyTag = document.createElement('script');
-      mightyTag.src = 'https://youtube.com/iframe_api';
-      window.onYouTubeIframeAPIReady = initializeCinemaPlayer;
-      document.body.appendChild(mightyTag);
+      // First load — inject the script once
+      if (!document.getElementById('yt-iframe-api')) {
+        const tag = document.createElement('script');
+        tag.id = 'yt-iframe-api';
+        tag.src = 'https://youtube.com/iframe_api';
+        document.body.appendChild(tag);
+      }
+      // ✅ FIX: onYouTubeIframeAPIReady must always point to createPlayer
+      // for the CURRENT activeVideo (previous closure may be stale)
+      window.onYouTubeIframeAPIReady = createPlayer;
     }
 
     return () => {
@@ -181,31 +151,27 @@ const VideoVault = ({ user }) => {
     };
   }, [activeVideo]);
 
-  // --------------------------------------------------------------------------
-  // 💾 CONTINUOUS PROGRESS LOGGING
-  // --------------------------------------------------------------------------
+  // Progress Save
   useEffect(() => {
-    const logInterval = setInterval(() => {
+    const interval = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime && activeVideo) {
         try {
           const currentTime = playerRef.current.getCurrentTime();
-          const duration = playerRef.current.getDuration();
           if (currentTime > 0) {
-            localStorage.setItem(`mighty_progress_${activeVideo._id}`, currentTime);
-            setWatchProgress((currentTime / duration) * 100);
+            localStorage.setItem(`progress_${activeVideo._id}`, currentTime);
           }
         } catch (e) {}
       }
-    }, 2500); // High precision logging
-    return () => clearInterval(logInterval);
+    }, 5000);
+    return () => clearInterval(interval);
   }, [activeVideo]);
 
-  // --------------------------------------------------------------------------
-  // 🛠️ MIGHTY COMMAND HANDLERS
-  // --------------------------------------------------------------------------
-  const executeTogglePlayback = () => {
-    if (!playerRef.current || typeof playerRef.current.getPlayerState !== 'function') return;
-
+  // ===============================
+  // 🛠️ MIGHTY HANDLERS
+  // ===============================
+  const togglePlayback = () => {
+    if (!playerRef.current) return;
+    if (typeof playerRef.current.getPlayerState !== 'function') return;
     const state = playerRef.current.getPlayerState();
     if (state === window.YT.PlayerState.PLAYING) {
       playerRef.current.pauseVideo();
@@ -214,365 +180,197 @@ const VideoVault = ({ user }) => {
     }
   };
 
-  const executeMightySkip = (seconds) => {
+  const handleSkip = (delta) => {
     if (!playerRef.current || videoEnded) return;
     try {
-      const now = playerRef.current.getCurrentTime();
-      playerRef.current.seekTo(now + seconds, true);
+      const current = playerRef.current.getCurrentTime();
+      playerRef.current.seekTo(current + delta, true);
       playerRef.current.playVideo();
     } catch (e) {}
   };
 
-  const executeLessonSwitch = (video) => {
-    if (activeVideo?._id === video._id && !videoEnded) return;
+  const handleSelectVideo = (video) => {
+    if (activeVideo?._id === video._id) return; // already selected
     setLoading(true);
     setVideoEnded(false);
     setActiveVideo(video);
-    if (isMobile) setSidebarVisible(false);
-    // Visual transition buffer
-    setTimeout(() => setLoading(false), 900);
+    setTimeout(() => setLoading(false), 800);
   };
 
-  // --------------------------------------------------------------------------
-  // ⏳ THE MIGHTY LOADING ARCHITECTURE
-  // --------------------------------------------------------------------------
   if (loading) return (
-    <div style={styles.loaderBackdrop}>
-      <div style={styles.mightyRing}></div>
-      <div style={styles.mightyInnerRing}></div>
-      <h1 style={styles.loaderHeader}>MARO ACADEMY</h1>
-      <p style={styles.loaderStatus}>CONNECTING TO THE SECURE KNOWLEDGE VAULT...</p>
-      <div style={styles.loaderProgressBar}>
-        <div style={styles.loaderProgressFill}></div>
-      </div>
+    <div style={styles.loadingWrapper}>
+      <div style={styles.loaderSpinner}></div>
+      <h2 style={{ color: '#ffd700', marginTop: '20px' }}>🔐 UNLOCKING VAULT...</h2>
     </div>
   );
 
-  // --------------------------------------------------------------------------
-  // 🏛️ THE GRAND UI ARCHITECTURE
-  // --------------------------------------------------------------------------
   return (
-    <div style={styles.appContainer}>
-      
-      {/* MIGHTY HEADER NAVIGATION */}
-      <header style={styles.mainHeader}>
-        <div style={styles.headerLeft}>
-          <div style={styles.mightyLogo}>🏛️</div>
-          <div style={styles.logoTextStack}>
-            <h1 style={styles.brandTitle}>MARO ACADEMY PRO</h1>
-            <span style={styles.brandSlogan}>THE ULTIMATE ACADEMIC FRONTIER</span>
-          </div>
+    <div style={styles.container}>
+      {/* HEADER */}
+      <div style={styles.header}>
+        <div style={styles.logoGroup}>
+          <span style={styles.logoIcon}>🏛️</span>
+          <h1 style={styles.logo}>MARO ACADEMY PRO</h1>
         </div>
-        
-        <div style={styles.headerRight}>
-          <div style={styles.sessionCard}>
-            <div style={styles.pulseDot}></div>
-            <div style={styles.sessionInfo}>
-              <span style={styles.welcomeText}>Welcome, {user?.name || 'Academic'}</span>
-              <span style={styles.entryText}>Session Active: {vaultEntryTime}</span>
-            </div>
-          </div>
-          <button style={styles.secureLogoutBtn} onClick={() => navigate('/')}>LOGOUT VAULT</button>
+        <div style={styles.userMeta}>
+          <span style={styles.userName}>{user?.name || 'Academic'}</span>
+          <button style={styles.logoutBtn} onClick={() => navigate('/login')}>Logout</button>
         </div>
-      </header>
+      </div>
 
-      {/* THE MIGHTY CORE LAYOUT */}
-      <main style={{ 
-        ...styles.mainLayout, 
-        flexDirection: isMobile ? 'column' : 'row' 
-      }}>
-        
-        {/* LEFT: THE CINEMA STAGE (OGA OF THE SCREEN) */}
-        <div style={{ 
-          ...styles.cinemaStage, 
-          flex: isMobile ? 'none' : 4,
-          paddingRight: isMobile ? 0 : '20px'
-        }}>
+      <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row' }}>
+
+        {/* LEFT — THE MIGHTY PLAYER SECTION */}
+        <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 3.5 }}>
           {activeVideo && (
-            <section style={styles.stageSection}>
-              
-              {/* THE MIGHTY CINEMA WRAPPER */}
-              <div style={styles.cinemaFrame}>
-                <div id={playerDivId} style={styles.iframeEngine}></div>
-                
-                {/* 🛡️ THE MIGHTY DIGITAL SHIELD (CLICK PROTECTION) */}
-                <div style={styles.mightyShield} onContextMenu={(e) => e.preventDefault()} />
-                
-                {/* 🛡️ BRANDING BLOCKERS (KILL THE LEAKS) */}
-                <div style={styles.blockerTop} />
-                <div style={styles.blockerBottom} />
-                <div style={styles.logoWatermark}>MARO PRO</div>
+            <>
+              {/* ✅ FIX: wrapper uses paddingBottom trick for true 16:9 and is slightly taller */}
+              <div style={styles.playerWrapper}>
+                {/*
+                  The key prop forces React to remount this div fresh whenever
+                  activeVideo changes, so YT.Player always gets a clean DOM node.
+                */}
+                <div key={activeVideo._id} id={playerDivId} style={styles.playerDiv} />
+                <div style={styles.mightyShield} />
+                <div style={styles.topLeftBlocker} />
+                <div style={styles.topRightBlocker} />
+                <div style={styles.bottomBlocker} />
 
-                {/* THE VICTORY COMPLETION OVERLAY */}
                 {videoEnded && (
-                  <div style={styles.victoryOverlay}>
-                    <div style={styles.victoryPortal}>
-                      <div style={styles.victoryTrophy}>🎓</div>
-                      <h2 style={styles.victoryTitle}>MODULE COMPLETED</h2>
-                      <p style={styles.victoryDescription}>
-                        Your academic progress has been synchronized with the database. 
-                        You are now authorized to proceed or review.
-                      </p>
-                      <div style={styles.victoryButtons}>
-                        <button style={styles.btnGoldAction} onClick={() => setVideoEnded(false)}>RESTART LESSON</button>
-                        <button style={styles.btnOutlineAction} onClick={() => setSidebarVisible(true)}>CHOOSE NEXT</button>
-                      </div>
+                  <div style={styles.endOverlay}>
+                    <div style={styles.endCard}>
+                      <div style={styles.endIcon}>🎓</div>
+                      <h2 style={styles.endTitle}>Lesson Complete!</h2>
+                      <p style={styles.endText}>Ready for the next challenge? Select the next lesson from the curriculum.</p>
+                      <button style={styles.replayBtn} onClick={() => {
+                        setVideoEnded(false);
+                        if (playerRef.current) {
+                          try {
+                            playerRef.current.seekTo(0, true);
+                            playerRef.current.playVideo();
+                          } catch (e) {}
+                        }
+                      }}>Replay Lesson</button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* THE COMMAND CENTER (INTERACTIVE CONTROLS) */}
-              <div style={styles.commandCenter}>
-                <div style={styles.progressTrack}>
-                  <div style={{ ...styles.progressFill, width: `${watchProgress}%` }} />
-                </div>
-                <div style={styles.controlRow}>
-                  <button style={styles.btnCommandSmall} onClick={() => executeMightySkip(-10)}>⏪ 10S</button>
-                  <button style={styles.btnCommandLarge} onClick={executeTogglePlayback}>
-                    {isPlaying ? '⏸ PAUSE MODULE' : '▶ RESUME TEACHING'}
-                  </button>
-                  <button style={styles.btnCommandSmall} onClick={() => executeMightySkip(10)}>10S ⏩</button>
-                </div>
+              {/* CONTROLS */}
+              <div style={styles.controls}>
+                <button style={styles.skipBtn} onClick={() => handleSkip(-10)}>⏪ 10s</button>
+                <button style={styles.playBtn} onClick={togglePlayback}>
+                  {isPlaying ? '⏸ PAUSE' : '▶ PLAY LESSON'}
+                </button>
+                <button style={styles.skipBtn} onClick={() => handleSkip(10)}>10s ⏩</button>
               </div>
 
-              {/* ENHANCED LESSON INFORMATION */}
-              <div style={styles.lessonMetaBox}>
-                <div style={styles.metaTop}>
-                  <h2 style={styles.lessonFullTitle}>{activeVideo.title}</h2>
-                  <div style={styles.lessonBadge}>OFFICIAL ACADEMY CONTENT</div>
-                </div>
-                <div style={styles.mightyDivider} />
-                <div style={styles.descriptionGrid}>
-                  <div style={styles.descMain}>
-                    <p style={styles.lessonParagraph}>
-                      {activeVideo.description || "This advanced module is meticulously crafted to ensure professional-grade mastery of the subject matter. Follow every instruction carefully to maximize your learning efficiency."}
-                    </p>
-                  </div>
-                  <div style={styles.descSide}>
-                    <div style={styles.miniStat}>
-                      <span style={styles.statLabel}>Status</span>
-                      <span style={styles.statValue}>Verified</span>
-                    </div>
-                    <div style={styles.miniStat}>
-                      <span style={styles.statLabel}>Access</span>
-                      <span style={styles.statValue}>Premium</span>
-                    </div>
-                  </div>
-                </div>
+              {/* INFO BOX */}
+              <div style={styles.infoBox}>
+                <h2 style={styles.videoTitle}>{activeVideo.title}</h2>
+                <div style={styles.divider} />
+                <p style={styles.videoDesc}>{activeVideo.description || "Unlock the full potential of your academic journey with this in-depth tutorial."}</p>
               </div>
-            </section>
+            </>
           )}
         </div>
 
-        {/* RIGHT: THE CURRICULUM SIDEBAR (INTELLIGENT SCROLL) */}
-        <div style={{ 
-          ...styles.sidebarContainer, 
-          width: isMobile ? '100%' : '440px',
-          display: (isMobile && !sidebarVisible) ? 'none' : 'flex'
-        }}>
+        {/* RIGHT — SIDEBAR CURRICULUM */}
+        <div style={{ ...styles.sidebar, width: isMobile ? '100%' : '380px' }}>
           <div style={styles.sidebarHeader}>
-            <div style={styles.sidebarTitleGroup}>
-              <h3 style={styles.curriculumHeading}>COURSE CURRICULUM</h3>
-              <span style={styles.moduleCount}>{videos.length} SECURE MODULES</span>
-            </div>
-            <div style={styles.mightyStatusChip}>ONLINE</div>
+            <h3 style={styles.sidebarTitle}>COURSE CURRICULUM</h3>
+            <span style={styles.videoCount}>{videos.length} LESSONS</span>
           </div>
-          
-          <div style={styles.curriculumList}>
-            {videos.map((v, i) => (
-              <div 
-                key={v._id} 
-                onClick={() => executeLessonSwitch(v)}
+
+          <div style={styles.videoList}>
+            {videos.map((v) => (
+              <div
+                key={v._id}
+                onClick={() => handleSelectVideo(v)}
                 style={{
-                  ...styles.curriculumCard,
-                  ...(activeVideo?._id === v._id ? styles.cardActive : {})
+                  ...styles.videoItem,
+                  ...(activeVideo?._id === v._id ? styles.videoItemActive : {})
                 }}
               >
-                <div style={styles.cardIndex}>{String(i + 1).padStart(2, '0')}</div>
-                <div style={styles.cardContent}>
-                  <span style={{
-                    ...styles.cardTitle,
-                    color: activeVideo?._id === v._id ? '#ffd700' : '#fff'
-                  }}>{v.title}</span>
-                  <span style={styles.cardDuration}>{activeVideo?._id === v._id ? 'CURRENT SESSION' : 'READY TO PLAY'}</span>
+                <div style={styles.videoItemStatus}>
+                  {activeVideo?._id === v._id ? '▶' : '○'}
                 </div>
-                <div style={styles.cardStatusIcon}>
-                  {activeVideo?._id === v._id ? '⚡' : '🔒'}
-                </div>
+                <span style={styles.videoItemTitle}>{v.title}</span>
+                <div style={styles.lockIcon}>🔒</div>
               </div>
             ))}
           </div>
 
-          <div style={styles.sidebarFooter}>
-            <p style={styles.footerText}>MARO ACADEMY SECURITY v4.0</p>
-            <p style={styles.footerHash}>HASH: {activeVideo?._id?.substring(0, 10)}...</p>
-          </div>
+          {videoEnded && (
+            <div style={styles.lockedNotice}>
+              ✅ Current lesson completed! <br />
+              <b>You can now click the next lesson below.</b>
+            </div>
+          )}
         </div>
-
-      </main>
-
-      {/* MOBILE TRIGGER */}
-      {isMobile && !sidebarVisible && (
-        <button style={styles.mobileCurriculumToggle} onClick={() => setSidebarVisible(true)}>
-          BROWSE CURRICULUM 📖
-        </button>
-      )}
-
+      </div>
     </div>
   );
 };
 
-// --------------------------------------------------------------------------
-// 🎨 THE MIGHTY ARCHITECTURAL STYLES (PURE POWER CSS)
-// --------------------------------------------------------------------------
+// ===============================
+// 🎨 MIGHTY STYLES
+// ===============================
 const styles = {
-  appContainer: {
-    minHeight: '100vh',
-    background: '#010101',
-    color: '#fff',
-    fontFamily: "'Segoe UI', 'Inter', system-ui, sans-serif",
-    paddingBottom: '100px'
-  },
-  
-  // HEADER
-  mainHeader: {
-    height: '110px',
-    padding: '0 60px',
-    background: 'linear-gradient(to bottom, #000, #050505)',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #151515',
-    position: 'sticky',
-    top: 0,
-    zIndex: 1000,
-    boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-  },
-  headerLeft: { display: 'flex', alignItems: 'center', gap: '25px' },
-  mightyLogo: { fontSize: '3rem', filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.3))' },
-  logoTextStack: { display: 'flex', flexDirection: 'column' },
-  brandTitle: { 
-    color: '#ffd700', 
-    fontSize: '2rem', 
-    fontWeight: '900', 
-    letterSpacing: '4px', 
-    margin: 0,
-    textTransform: 'uppercase'
-  },
-  brandSlogan: { color: '#444', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '2px', marginTop: '5px' },
-  headerRight: { display: 'flex', alignItems: 'center', gap: '40px' },
-  sessionCard: { display: 'flex', alignItems: 'center', gap: '15px', background: '#080808', padding: '12px 25px', borderRadius: '40px', border: '1px solid #1a1a1a' },
-  pulseDot: { width: '10px', height: '10px', background: '#0f0', borderRadius: '50%', boxShadow: '0 0 12px #0f0', animation: 'pulse 1.5s infinite' },
-  sessionInfo: { display: 'flex', flexDirection: 'column' },
-  welcomeText: { fontSize: '0.95rem', fontWeight: '700', color: '#fff' },
-  entryText: { fontSize: '0.7rem', color: '#555', marginTop: '2px' },
-  secureLogoutBtn: { 
-    background: 'transparent', 
-    border: '1px solid #333', 
-    color: '#888', 
-    padding: '12px 25px', 
-    borderRadius: '10px', 
-    cursor: 'pointer', 
-    fontWeight: '900', 
-    fontSize: '0.75rem',
-    transition: '0.3s',
-    '&:hover': { borderColor: '#ffd700', color: '#ffd700' }
+  container: { minHeight: '100vh', background: '#050505', color: '#fff', paddingBottom: '50px' },
+  header: { padding: '20px 40px', background: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #111', marginBottom: '30px' },
+  logoGroup: { display: 'flex', alignItems: 'center', gap: '15px' },
+  logoIcon: { fontSize: '2rem' },
+  logo: { color: '#ffd700', fontSize: '1.5rem', fontWeight: '900', letterSpacing: '2px', margin: 0 },
+  userMeta: { display: 'flex', alignItems: 'center', gap: '20px' },
+  userName: { color: '#888', fontWeight: '500' },
+  logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' },
+  layout: { display: 'flex', gap: '30px', maxWidth: '100%', margin: '0 auto', padding: '0 40px' },
+  playerSection: { minWidth: 0 },
+
+  // ✅ FIX: use paddingBottom % trick for true responsive 16:9
+  // and slightly increased size by bumping paddingBottom from 56.25% to 58%
+  playerWrapper: {
+    position: 'relative',
+    width: '100%',
+    paddingBottom: '58%',   // slightly taller than 16:9 (56.25%) for a bigger feel
+    background: '#000',
+    borderRadius: '24px',
+    overflow: 'hidden',
+    boxShadow: '0 30px 60px rgba(0,0,0,0.7)',
+    border: '1px solid #111',
   },
 
-  // LAYOUT
-  mainLayout: { display: 'flex', gap: '50px', maxWidth: '100%', margin: '0 auto', padding: '10px 20px' },
-  
-  // CINEMA STAGE
-  cinemaStage: { minWidth: 0 ,flex:5},
-  stageSection: { display: 'flex', flexDirection: 'column' },
-  cinemaFrame: { 
-    position: 'relative', 
-    width: '100%', 
-    aspectRatio: '16/9', 
-    background: '#000', 
-    borderRadius: '40px', 
-    overflow: 'hidden', 
-    boxShadow: '0 60px 120px rgba(0,0,0,0.9)', 
-    border: '1px solid #181818' 
-  },
-  iframeEngine: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
-  blockerTop: { position: 'absolute', top: 0, left: 0, width: '100%', height: '120px', background: 'linear-gradient(to bottom, #000 35%, transparent 100%)', zIndex: 11, pointerEvents: 'none' },
-  blockerBottom: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '70px', background: '#000', zIndex: 11, pointerEvents: 'none' },
-  logoWatermark: { position: 'absolute', top: '40px', left: '40px', color: 'rgba(255,215,0,0.2)', fontWeight: '900', fontSize: '0.8rem', zIndex: 12, letterSpacing: '3px' },
+  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '50%', height: '80px', background: 'linear-gradient(to bottom, #000 40%, transparent 100%)', zIndex: 11 },
+  topRightBlocker: { position: 'absolute', top: 0, right: 0, width: '150px', height: '80px', background: 'linear-gradient(to bottom, #000 40%, transparent 100%)', zIndex: 11 },
+  bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '55px', background: '#000', zIndex: 11 },
+  endOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
+  endCard: { textAlign: 'center', padding: '40px' },
+  endIcon: { fontSize: '4rem', marginBottom: '15px' },
+  endTitle: { color: '#ffd700', fontSize: '2rem', marginBottom: '10px' },
+  endText: { color: '#888', maxWidth: '350px', margin: '0 auto 20px', lineHeight: '1.6' },
+  replayBtn: { background: '#ffd700', color: '#000', padding: '10px 25px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' },
+  controls: { display: 'flex', gap: '20px', justifyContent: 'center', margin: '30px 0' },
+  playBtn: { background: '#ffd700', border: 'none', color: '#000', padding: '12px 45px', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '1rem', textTransform: 'uppercase' },
+  skipBtn: { background: '#111', border: '1px solid #222', color: '#fff', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer' },
+  infoBox: { background: '#0a0a0a', padding: '30px', borderRadius: '20px', border: '1px solid #111' },
+  videoTitle: { fontSize: '1.8rem', color: '#fff', margin: '0 0 10px' },
+  divider: { height: '3px', width: '40px', background: '#ffd700', marginBottom: '20px' },
+  videoDesc: { color: '#888', lineHeight: '1.8' },
+  sidebar: { background: '#0a0a0a', borderRadius: '20px', padding: '24px', border: '1px solid #111', maxHeight: '85vh', overflowY: 'auto' },
+  sidebarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #1a1a1a', paddingBottom: '15px' },
+  sidebarTitle: { color: '#ffd700', fontSize: '0.8rem', letterSpacing: '2px', fontWeight: 'bold' },
+  videoCount: { color: '#444', fontSize: '0.7rem' },
+  videoList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  videoItem: { display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', borderRadius: '12px', cursor: 'pointer', background: '#111', border: '1px solid transparent', transition: '0.2s' },
+  videoItemActive: { background: 'rgba(255,215,0,0.1)', borderColor: '#ffd700', color: '#ffd700' },
+  videoItemTitle: { fontSize: '0.95rem', fontWeight: '500' },
+  lockIcon: { marginLeft: 'auto', color: '#ffd700', fontSize: '0.9rem' },
+  lockedNotice: { marginTop: '20px', padding: '15px', background: 'rgba(255,215,0,0.05)', borderRadius: '10px', color: '#ffd700', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,215,0,0.1)' },
+  loadingWrapper: { height: '100vh', background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+  loaderSpinner: { width: '50px', height: '50px', border: '4px solid #111', borderTop: '4px solid #ffd700', borderRadius: '50%', animation: 'spin 1s linear infinite' }
+};
 
-  // VICTORY OVERLAY
-  victoryOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.98)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-  victoryPortal: { textAlign: 'center', padding: '60px' },
-  victoryTrophy: { fontSize: '7rem', marginBottom: '30px', filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.4))' },
-  victoryTitle: { color: '#ffd700', fontSize: '3.5rem', fontWeight: '900', marginBottom: '20px', letterSpacing: '1px' },
-  victoryDescription: { color: '#666', fontSize: '1.3rem', maxWidth: '600px', margin: '0 auto 40px', lineHeight: '1.8' },
-  victoryButtons: { display: 'flex', gap: '25px', justifyContent: 'center' },
-  btnGoldAction: { background: '#ffd700', color: '#000', padding: '18px 45px', borderRadius: '15px', fontWeight: '900', border: 'none', cursor: 'pointer', fontSize: '1rem', boxShadow: '0 10px 30px rgba(255,215,0,0.3)' },
-  btnOutlineAction: { background: 'transparent', color: '#ffd700', padding: '18px 45px', borderRadius: '15px', fontWeight: '900', border: '1px solid #ffd700', cursor: 'pointer', fontSize: '1rem' },
-
-  // COMMAND CENTER
-  commandCenter: { marginTop: '40px', background: '#060606', padding: '40px', borderRadius: '40px', border: '1px solid #111',position:'relative',zIndex:'9999',cursor:'pointer'},
-  progressTrack: { width: '100%', height: '8px', background: '#111', borderRadius: '10px', marginBottom: '35px', overflow: 'hidden' },
-  progressFill: { height: '100%', background: '#ffd700', transition: 'width 0.3s linear', boxShadow: '0 0 15px rgba(255,215,0,0.5)' },
-  controlRow: { display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center',position:'relative',zIndex:'9999',cursor:'pointer'},
-  btnCommandLarge: { 
-    background: '#ffd700', 
-    border: 'none', 
-    color: '#000', 
-    padding: '22px 80px', 
-    borderRadius: '20px', 
-    fontWeight: '900', 
-    cursor: 'pointer', 
-    fontSize: '1.3rem', 
-    textTransform: 'uppercase', 
-    letterSpacing: '2px',
-    boxShadow: '0 15px 40px rgba(255,215,0,0.2)'
-  },
-  btnCommandSmall: { background: '#0a0a0a', border: '1px solid #1a1a1a', color: '#fff', padding: '15px 35px', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem' },
-
-  // LESSON META
-  lessonMetaBox: { marginTop: '40px', background: '#060606', padding: '55px', borderRadius: '45px', border: '1px solid #111' },
-  metaTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
-  lessonFullTitle: { fontSize: '2.8rem', fontWeight: '900', margin: 0, color: '#fff' },
-  lessonBadge: { background: 'rgba(255,215,0,0.1)', color: '#ffd700', padding: '8px 20px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '900', border: '1px solid #ffd70033' },
-  mightyDivider: { height: '6px', width: '80px', background: '#ffd700', marginBottom: '40px', borderRadius: '3px' },
-  descriptionGrid: { display: 'flex', gap: '50px' },
-  descMain: { flex: 2 },
-  lessonParagraph: { color: '#888', fontSize: '1.25rem', lineHeight: '2.2', margin: 0 },
-  descSide: { flex: 1, display: 'flex', flexDirection: 'column', gap: '25px' },
-  miniStat: { background: '#0a0a0a', padding: '20px', borderRadius: '20px', border: '1px solid #151515', display: 'flex', flexDirection: 'column', gap: '5px' },
-  statLabel: { fontSize: '0.75rem', color: '#444', fontWeight: '900', textTransform: 'uppercase' },
-  statValue: { fontSize: '1.2rem', color: '#ffd700', fontWeight: 'bold' },
-
-  // SIDEBAR Master
-  sidebarContainer: { background: '#060606', borderRadius: '45px', padding: '20px', border: '1px solid #111',width:'320px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', position: 'sticky', top: '150px' },
-  sidebarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '45px', borderBottom: '1px solid #151515', paddingBottom: '35px' },
-  sidebarTitleGroup: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  curriculumHeading: { color: '#ffd700', fontSize: '1.1rem', fontWeight: '900', letterSpacing: '3px', margin: 0 },
-  moduleCount: { color: '#444', fontSize: '0.8rem', fontWeight: '900' },
-  mightyStatusChip: { background: 'rgba(0,255,0,0.05)', color: '#0f0', padding: '6px 15px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: '900', border: '1px solid rgba(0,255,0,0.2)' },
-  curriculumList: { display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', paddingRight: '10px' },
-  curriculumCard: { display: 'flex', alignItems: 'center', gap: '25px', padding: '25px', borderRadius: '25px', background: '#0a0a0a', border: '1px solid #151515', cursor: 'pointer', transition: '0.4s' },
-  cardActive: { background: 'rgba(255,215,0,0.05)', borderColor: '#ffd700', transform: 'translateX(10px) scale(1.02)', boxShadow: '-10px 0 30px rgba(255,215,0,0.1)' },
-  cardIndex: { width: '50px', height: '50px', borderRadius: '50%', background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: '900', color: '#444' },
-  cardContent: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 },
-  cardTitle: { fontSize: '1.15rem', fontWeight: '700' },
-  cardDuration: { fontSize: '0.8rem', color: '#444', fontWeight: 'bold' },
-  cardStatusIcon: { color: '#ffd700', fontSize: '1.3rem' },
-  sidebarFooter: { marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #151515', textAlign: 'center' },
-  footerText: { fontSize: '0.75rem', color: '#333', fontWeight: 'bold', letterSpacing: '2px' },
-  footerHash: { fontSize: '0.65rem', color: '#222', marginTop: '10px', fontFamily: 'monospace' },
-
-  // MOBILE ELEMENTS
-  mobileCurriculumToggle: { position: 'fixed', bottom: '40px', right: '40px', background: '#ffd700', color: '#000', padding: '20px 40px', borderRadius: '40px', fontWeight: '900', border: 'none', zIndex: 1001, boxShadow: '0 15px 40px rgba(255,215,0,0.5)', fontSize: '1rem', cursor: 'pointer' },
-  
-  // LOADING BACKDROP
-  loaderBackdrop: { height: '100vh', background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  mightyRing: { width: '100px', height: '100px', border: '8px solid #080808', borderTop: '8px solid #ffd700', borderRadius: '50%', animation: 'spin 1.2s linear infinite' },
-  mightyInnerRing: { width: '60px', height: '60px', border: '6px solid #080808', borderBottom: '6px solid #ffd700', borderRadius: '50%', position: 'absolute', animation: 'spin-reverse 0.8s linear infinite' },
-  loaderHeader: { color: '#ffd700', fontSize: '2.5rem', fontWeight: '900', marginTop: '50px', letterSpacing: '8px' },
-  loaderStatus: { color: '#444', marginTop:'20px'}
-}
 export default VideoVault;
