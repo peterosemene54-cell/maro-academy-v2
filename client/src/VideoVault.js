@@ -3,9 +3,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const VideoVault = ({ user }) => {
-  // ===============================
-  // 🏛️ STATE & REFS
-  // ===============================
   const [videos, setVideos] = useState([]);
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,13 +23,10 @@ const VideoVault = ({ user }) => {
     window.addEventListener('resize', handleResize);
 
     const preventSabotage = (e) => {
-      // Block Right Click
       if (e.type === "contextmenu") e.preventDefault();
-      
-      // Block Pro-Level Hacks (F12, Ctrl+U, etc.)
       if (
-        e.keyCode === 123 || 
-        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+        e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
         (e.ctrlKey && e.keyCode === 85)
       ) {
         e.preventDefault();
@@ -42,7 +36,7 @@ const VideoVault = ({ user }) => {
 
     document.addEventListener("contextmenu", preventSabotage);
     document.addEventListener("keydown", preventSabotage);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       document.removeEventListener("contextmenu", preventSabotage);
@@ -77,63 +71,57 @@ const VideoVault = ({ user }) => {
   }, [initializeVault]);
 
   // ===============================
-  // 🎥 THE MIGHTY PLAYER ENGINE
+  // 🎥 THE MIGHTY PLAYER ENGINE (FINAL FIX)
   // ===============================
+
+  // Step 1 — Create the player ONCE on mount, never destroy it
   useEffect(() => {
-    if (!activeVideo) return;
-
-    if (playerRef.current) {
-      try { playerRef.current.destroy(); } catch (e) {}
-      playerRef.current = null;
-    }
-
-    setVideoEnded(false);
-    setIsPlaying(false);
-
-    const savedTime = parseFloat(
-      localStorage.getItem(`progress_${activeVideo._id}`) || '0'
-    );
-
     const createPlayer = () => {
-      if (!window.YT || !window.YT.Player) return;
-      
-      playerRef.current = new window.YT.Player(playerDivId, {
-        videoId: activeVideo.videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          disablekb: 1,
-          iv_load_policy: 3,
-          fs: 0,
-          playsinline: 1,
-          start: Math.floor(savedTime),
-          origin: window.location.origin,
-        },
-        events: {
-          onReady: () => {
-            console.log("🏛️ MIGHTY ENGINE READY");
+      setTimeout(() => {
+        const el = document.getElementById(playerDivId);
+        if (!el || !window.YT || !window.YT.Player) return;
+        if (playerRef.current) return; // already created, don't recreate
+
+        playerRef.current = new window.YT.Player(playerDivId, {
+          videoId: '', // start empty, video loaded in Step 2
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            disablekb: 1,
+            iv_load_policy: 3,
+            fs: 0,
+            playsinline: 1,
+            origin: window.location.origin,
           },
-          onStateChange: (event) => {
-            if (event.data === window.YT.PlayerState.ENDED) {
-              setVideoEnded(true);
-              setIsPlaying(false);
-            }
-            if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-            if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
+          events: {
+            onReady: () => {
+              console.log("🏛️ MIGHTY ENGINE READY");
+            },
+            onStateChange: (event) => {
+              if (event.data === window.YT.PlayerState.ENDED) {
+                setVideoEnded(true);
+                setIsPlaying(false);
+              }
+              if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
+              if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
+            },
           },
-        },
-      });
+        });
+      }, 200);
     };
 
     if (window.YT && window.YT.Player) {
       createPlayer();
     } else {
-      const tag = document.createElement('script');
-      tag.src = 'https://youtube.com/iframe_api';
+      if (!document.getElementById('yt-iframe-api')) {
+        const tag = document.createElement('script');
+        tag.id = 'yt-iframe-api';
+        tag.src = 'https://youtube.com/iframe_api';
+        document.body.appendChild(tag);
+      }
       window.onYouTubeIframeAPIReady = createPlayer;
-      document.body.appendChild(tag);
     }
 
     return () => {
@@ -142,6 +130,38 @@ const VideoVault = ({ user }) => {
         playerRef.current = null;
       }
     };
+  }, []); // ✅ runs ONCE only on mount
+
+  // Step 2 — When activeVideo changes, just load the new video into existing player
+  useEffect(() => {
+    if (!activeVideo) return;
+
+    setVideoEnded(false);
+    setIsPlaying(false);
+
+    const savedTime = parseFloat(
+      localStorage.getItem(`progress_${activeVideo._id}`) || '0'
+    );
+
+    // ✅ KEY FIX: use cueVideoById instead of destroying/recreating player
+    // This swaps the video WITHOUT touching the player instance at all
+    const loadVideo = () => {
+      if (!playerRef.current || typeof playerRef.current.cueVideoById !== 'function') {
+        // Player not ready yet, wait and retry
+        setTimeout(loadVideo, 300);
+        return;
+      }
+      try {
+        playerRef.current.cueVideoById({
+          videoId: activeVideo.videoId,
+          startSeconds: Math.floor(savedTime),
+        });
+      } catch (e) {
+        console.error("Load video error:", e);
+      }
+    };
+
+    setTimeout(loadVideo, 250);
   }, [activeVideo]);
 
   // Progress Save
@@ -164,10 +184,7 @@ const VideoVault = ({ user }) => {
   // ===============================
   const togglePlayback = () => {
     if (!playerRef.current) return;
-    
-    // Check if the engine is ready
     if (typeof playerRef.current.getPlayerState !== 'function') return;
-
     const state = playerRef.current.getPlayerState();
     if (state === window.YT.PlayerState.PLAYING) {
       playerRef.current.pauseVideo();
@@ -186,8 +203,9 @@ const VideoVault = ({ user }) => {
   };
 
   const handleSelectVideo = (video) => {
-    setLoading(true); // Smooth transition
-    setVideoEnded(false); // Instant Reset
+    if (activeVideo?._id === video._id) return; // already selected
+    setLoading(true);
+    setVideoEnded(false);
     setActiveVideo(video);
     setTimeout(() => setLoading(false), 800);
   };
@@ -214,28 +232,33 @@ const VideoVault = ({ user }) => {
       </div>
 
       <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row' }}>
-        
+
         {/* LEFT — THE MIGHTY PLAYER SECTION */}
         <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 3.5 }}>
           {activeVideo && (
             <>
-              <div style={styles.playerWrapper} key={activeVideo?._id}>
-  <div id={playerDivId} style={styles.playerDiv} />
+              <div style={styles.playerWrapper}>
+                <div id={playerDivId} style={styles.playerDiv} />
                 <div style={styles.mightyShield} />
-                
-                {/* BRANDING BLOCKERS */}
                 <div style={styles.topLeftBlocker} />
                 <div style={styles.topRightBlocker} />
                 <div style={styles.bottomBlocker} />
 
-                {/* END SCREEN OVERLAY */}
                 {videoEnded && (
                   <div style={styles.endOverlay}>
                     <div style={styles.endCard}>
                       <div style={styles.endIcon}>🎓</div>
                       <h2 style={styles.endTitle}>Lesson Complete!</h2>
                       <p style={styles.endText}>Ready for the next challenge? Select the next lesson from the curriculum.</p>
-                      <button style={styles.replayBtn} onClick={() => setVideoEnded(false)}>Replay Lesson</button>
+                      <button style={styles.replayBtn} onClick={() => {
+                        setVideoEnded(false);
+                        if (playerRef.current) {
+                          try {
+                            playerRef.current.seekTo(0, true);
+                            playerRef.current.playVideo();
+                          } catch (e) {}
+                        }
+                      }}>Replay Lesson</button>
                     </div>
                   </div>
                 )}
@@ -266,11 +289,11 @@ const VideoVault = ({ user }) => {
             <h3 style={styles.sidebarTitle}>COURSE CURRICULUM</h3>
             <span style={styles.videoCount}>{videos.length} LESSONS</span>
           </div>
-          
+
           <div style={styles.videoList}>
             {videos.map((v) => (
-              <div 
-                key={v._id} 
+              <div
+                key={v._id}
                 onClick={() => handleSelectVideo(v)}
                 style={{
                   ...styles.videoItem,
@@ -285,7 +308,7 @@ const VideoVault = ({ user }) => {
               </div>
             ))}
           </div>
-          
+
           {videoEnded && (
             <div style={styles.lockedNotice}>
               ✅ Current lesson completed! <br />
@@ -312,7 +335,20 @@ const styles = {
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' },
   layout: { display: 'flex', gap: '30px', maxWidth: '100%', margin: '0 auto', padding: '0 40px' },
   playerSection: { minWidth: 0 },
-  playerWrapper: { position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.7)', border: '1px solid #111' },
+
+  // ✅ FIX: use paddingBottom % trick for true responsive 16:9
+  // and slightly increased size by bumping paddingBottom from 56.25% to 58%
+  playerWrapper: {
+    position: 'relative',
+    width: '100%',
+    paddingBottom: '58%',   // slightly taller than 16:9 (56.25%) for a bigger feel
+    background: '#000',
+    borderRadius: '24px',
+    overflow: 'hidden',
+    boxShadow: '0 30px 60px rgba(0,0,0,0.7)',
+    border: '1px solid #111',
+  },
+
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
   topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '50%', height: '80px', background: 'linear-gradient(to bottom, #000 40%, transparent 100%)', zIndex: 11 },
@@ -346,14 +382,3 @@ const styles = {
 };
 
 export default VideoVault;
-
-
-
-
-
-
-
-
-
-
-
