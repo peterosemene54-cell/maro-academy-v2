@@ -76,56 +76,55 @@ const VideoVault = ({ user }) => {
 
   // Step 1 — Create the player ONCE on mount, never destroy it
   useEffect(() => {
-    const createPlayer = () => {
-      setTimeout(() => {
-        const el = document.getElementById(playerDivId);
-        if (!el || !window.YT || !window.YT.Player) return;
-        if (playerRef.current) return; // already created, don't recreate
+    // ✅ BULLETPROOF: poll every 100ms until both the div AND YT.Player exist
+    const tryCreatePlayer = () => {
+      const el = document.getElementById(playerDivId);
+      if (!el) { setTimeout(tryCreatePlayer, 100); return; }
+      if (!window.YT || !window.YT.Player) { setTimeout(tryCreatePlayer, 100); return; }
+      if (playerRef.current) return; // already created
 
-        playerRef.current = new window.YT.Player(playerDivId, {
-          videoId: '', // start empty, video loaded in Step 2
-          playerVars: {
-            autoplay: 0,
-            controls: 0,
-            modestbranding: 1,
-            showinfo: 0,
-            rel: 0,
-            disablekb: 1,
-            iv_load_policy: 3,
-            fs: 0,
-            playsinline: 1,
-            origin: window.location.origin,
-            color: 'white',
-            widget_referrer: window.location.origin,
+      console.log("🏛️ CREATING PLAYER...");
+
+      playerRef.current = new window.YT.Player(playerDivId, {
+        videoId: '',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          modestbranding: 1,
+          showinfo: 0,
+          rel: 0,
+          disablekb: 1,
+          iv_load_policy: 3,
+          fs: 0,
+          playsinline: 1,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: (e) => {
+            console.log("🏛️ MIGHTY ENGINE READY!");
           },
-          events: {
-            onReady: () => {
-              console.log("🏛️ MIGHTY ENGINE READY");
-            },
-            onStateChange: (event) => {
-              if (event.data === window.YT.PlayerState.ENDED) {
-                setVideoEnded(true);
-                setIsPlaying(false);
-              }
-              if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-              if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
-            },
+          onStateChange: (event) => {
+            if (event.data === window.YT.PlayerState.ENDED) {
+              setVideoEnded(true);
+              setIsPlaying(false);
+            }
+            if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
+            if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
           },
-        });
-      }, 200);
+        },
+      });
     };
 
-    if (window.YT && window.YT.Player) {
-      createPlayer();
-    } else {
-      if (!document.getElementById('yt-iframe-api')) {
-        const tag = document.createElement('script');
-        tag.id = 'yt-iframe-api';
-        tag.src = 'https://youtube.com/iframe_api';
-        document.body.appendChild(tag);
-      }
-      window.onYouTubeIframeAPIReady = createPlayer;
+    // Inject YouTube API script if not already there
+    if (!document.getElementById('yt-iframe-api')) {
+      const tag = document.createElement('script');
+      tag.id = 'yt-iframe-api';
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.body.appendChild(tag);
     }
+
+    // Start polling — works whether YT was already loaded or loads fresh
+    setTimeout(tryCreatePlayer, 300);
 
     return () => {
       if (playerRef.current) {
