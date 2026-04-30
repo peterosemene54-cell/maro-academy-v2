@@ -13,7 +13,7 @@ const VideoVault = ({ user }) => {
   const navigate = useNavigate();
   const playerRef = useRef(null);
   const playerDivId = 'mighty-vault-player';
-  const API_URL = "https://onrender.com";
+  const API_URL = "https://maro-academy-v2.onrender.com";
 
   // ===============================
   // 🛡️ SECURITY & RESPONSIVENESS
