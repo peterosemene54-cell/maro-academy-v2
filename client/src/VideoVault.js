@@ -240,10 +240,18 @@ const VideoVault = ({ user }) => {
             <>
               <div style={styles.playerWrapper}>
                 <div id={playerDivId} style={styles.playerDiv} />
+                {/* Full shield - blocks all clicks */}
                 <div style={styles.mightyShield} />
+                {/* TOP LEFT - covers YouTube watermark */}
                 <div style={styles.topLeftBlocker} />
+                {/* TOP RIGHT - covers YouTube logo */}
                 <div style={styles.topRightBlocker} />
+                {/* BOTTOM - covers controls bar */}
                 <div style={styles.bottomBlocker} />
+                {/* BOTTOM LEFT - covers watch later button */}
+                <div style={styles.bottomLeftBlocker} />
+                {/* CENTER TOP - extra coverage */}
+                <div style={styles.centerTopBlocker} />
 
                 {videoEnded && (
                   <div style={styles.endOverlay}>
@@ -352,9 +360,11 @@ const styles = {
 
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
-  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '55%', height: '90px', background: 'linear-gradient(to bottom, #000 60%, transparent 100%)', zIndex: 11 },
-  topRightBlocker: { position: 'absolute', top: 0, right: 0, width: '220px', height: '90px', background: 'linear-gradient(to bottom, #000 60%, transparent 100%)', zIndex: 11 },
-  bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '55px', background: '#000', zIndex: 11 },
+  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '180px', height: '50px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
+  topRightBlocker: { position: 'absolute', top: 0, right: 0, width: '180px', height: '50px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
+  bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
+  bottomLeftBlocker: { position: 'absolute', bottom: '60px', left: 0, width: '120px', height: '50px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
+  centerTopBlocker: { position: 'absolute', top: 0, left: '180px', right: '180px', height: '50px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
   endOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   endCard: { textAlign: 'center', padding: '40px' },
   endIcon: { fontSize: '4rem', marginBottom: '15px' },
