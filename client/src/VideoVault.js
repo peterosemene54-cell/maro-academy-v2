@@ -575,3 +575,4 @@ const styles = {
   loaderHeader: { color: '#ffd700', fontSize: '2.5rem', fontWeight: '900', marginTop: '50px', letterSpacing: '8px' },
   loaderStatus: { color: '#444', marginTop:'20px'}
 }
+export default VideoVault;
