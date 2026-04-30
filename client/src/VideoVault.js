@@ -204,10 +204,8 @@ const VideoVault = ({ user }) => {
 
   const handleSelectVideo = (video) => {
     if (activeVideo?._id === video._id) return; // already selected
-    setLoading(true);
     setVideoEnded(false);
     setActiveVideo(video);
-    setTimeout(() => setLoading(false), 800);
   };
 
   if (loading) return (
