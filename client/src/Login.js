@@ -31,7 +31,7 @@ const Login = ({ setUser }) => {
 
         } catch (error) {
             // 📢 Professional message from server
-            const professionalMessage = error.response?.data?.message || "YOU ARE REGISTERED ON THIS PLATFORM.CLICK THE LOGIN BUTTON";
+            const professionalMessage = error.response?.data?.message || "Connection error. Please check your internet.";
             
             // 🔐 Security alert
             alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");

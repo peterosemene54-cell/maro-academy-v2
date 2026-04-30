@@ -24,7 +24,7 @@ const Register = () => {
             }
         } catch (error) {
             console.error(error);
-            alert("❌ ERROR: " + (error.response?.data?.message || "Server is waking up, please try again in 30 seconds."));
+            alert("❌ ERROR: " + (error.response?.data?.message || " ❌ You are currently registered on this platform.please login"));
         } finally {
             setLoading(false);
         }
