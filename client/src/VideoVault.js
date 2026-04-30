@@ -481,10 +481,10 @@ const styles = {
   },
 
   // LAYOUT
-  mainLayout: { display: 'flex', gap: '50px', maxWidth: '100%', margin: '0 auto', padding: '50px 60px' },
+  mainLayout: { display: 'flex', gap: '50px', maxWidth: '100%', margin: '0 auto', padding: '10px 20px' },
   
   // CINEMA STAGE
-  cinemaStage: { minWidth: 0 },
+  cinemaStage: { minWidth: 0 ,flex:5},
   stageSection: { display: 'flex', flexDirection: 'column' },
   cinemaFrame: { 
     position: 'relative', 
@@ -513,10 +513,10 @@ const styles = {
   btnOutlineAction: { background: 'transparent', color: '#ffd700', padding: '18px 45px', borderRadius: '15px', fontWeight: '900', border: '1px solid #ffd700', cursor: 'pointer', fontSize: '1rem' },
 
   // COMMAND CENTER
-  commandCenter: { marginTop: '50px', background: '#060606', padding: '40px', borderRadius: '40px', border: '1px solid #111' },
+  commandCenter: { marginTop: '40px', background: '#060606', padding: '40px', borderRadius: '40px', border: '1px solid #111',position:'relative',zIndex:'9999',cursor:'pointer'},
   progressTrack: { width: '100%', height: '8px', background: '#111', borderRadius: '10px', marginBottom: '35px', overflow: 'hidden' },
   progressFill: { height: '100%', background: '#ffd700', transition: 'width 0.3s linear', boxShadow: '0 0 15px rgba(255,215,0,0.5)' },
-  controlRow: { display: 'flex', justifyContent: 'center', gap: '30px', alignItems: 'center' },
+  controlRow: { display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center',position:'relative',zIndex:'9999',cursor:'pointer'},
   btnCommandLarge: { 
     background: '#ffd700', 
     border: 'none', 
@@ -547,7 +547,7 @@ const styles = {
   statValue: { fontSize: '1.2rem', color: '#ffd700', fontWeight: 'bold' },
 
   // SIDEBAR Master
-  sidebarContainer: { background: '#060606', borderRadius: '45px', padding: '45px', border: '1px solid #111', maxHeight: '95vh', display: 'flex', flexDirection: 'column', position: 'sticky', top: '150px' },
+  sidebarContainer: { background: '#060606', borderRadius: '45px', padding: '20px', border: '1px solid #111',width:'320px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', position: 'sticky', top: '150px' },
   sidebarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '45px', borderBottom: '1px solid #151515', paddingBottom: '35px' },
   sidebarTitleGroup: { display: 'flex', flexDirection: 'column', gap: '10px' },
   curriculumHeading: { color: '#ffd700', fontSize: '1.1rem', fontWeight: '900', letterSpacing: '3px', margin: 0 },
