@@ -20,7 +20,7 @@ app.use(express.json());
 // 🔐 DATABASE CONNECTION
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('🚀 MONGODB CONNECTED SUCCESSFULLY!'))
-  .catch(err => console.log('❌ DATABASE ERROR:'));
+  .catch(err => console.log('❌ DATABASE ERROR:', err));
 
 // 📝 1. USER SCHEMA
 const UserSchema = new mongoose.Schema({
