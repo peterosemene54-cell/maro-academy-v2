@@ -137,7 +137,7 @@ const VideoVault = ({ user }) => {
       createPlayer();
     } else {
       const tag = document.createElement('script');
-      tag.src = 'https://youtube.com';
+      tag.src = 'https://youtube.com/iframe_api';
       window.onYouTubeIframeAPIReady = createPlayer;
       document.body.appendChild(tag);
     }
