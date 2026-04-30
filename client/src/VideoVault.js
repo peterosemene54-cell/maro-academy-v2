@@ -359,7 +359,15 @@ const styles = {
 
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
-  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '180px', height: '50px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
+ topLeftBlocker: { 
+  position: 'absolute', 
+  top: 0, 
+  left: 0, 
+  width: '100%',  // full width covers channel name
+  height: '50px', // just enough height for the text
+  background: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%)', 
+  zIndex: 11 
+},
   topRightBlocker: { position: 'absolute', top: 0, right: 0, width: '180px', height: '50px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
   bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
   bottomLeftBlocker: { position: 'absolute', bottom: '60px', left: 0, width: '120px', height: '50px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
