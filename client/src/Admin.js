@@ -7,8 +7,9 @@ const API_URL = "https://maro-academy-v2.onrender.com";
 const ADMIN_PASSWORD = "MaroAdmin2026";
 
 const Admin = () => {
-    // 🔐 FIX 1 — ALWAYS FALSE! No sessionStorage, no localStorage!
-    // Dies the moment you leave the page — password always required on return!
+    // 🔐 FIX 1 — ALWAYS FALSE!
+    // No sessionStorage, no localStorage!
+    // Dies the moment you leave — password ALWAYS required on return!
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
@@ -19,7 +20,7 @@ const Admin = () => {
     const [uploading, setUploading] = useState(false);
     const [paymentRequired, setPaymentRequired] = useState(false);
 
-    // 🔐 ADMIN LOGIN — NO sessionStorage!
+    // 🔐 ADMIN LOGIN — NO sessionStorage AT ALL!
     const handleAdminLogin = (e) => {
         e.preventDefault();
         if (passwordInput === ADMIN_PASSWORD) {
@@ -59,17 +60,18 @@ const Admin = () => {
         }
     };
 
-    // 🔥 FIX 6 — REAL TIME! Fetch students every 10 seconds automatically!
-    // No need to reload — admin table updates by itself!
+    // 🔥 REAL TIME — Fetches every 3 seconds automatically!
+    // Admin table updates instantly when anything changes!
     useEffect(() => {
         if (isAuthenticated) {
+            // Fetch immediately on login
             fetchStudents();
             fetchSettings();
 
-            // 🔄 AUTO REFRESH every 10 seconds — real time updates!
+            // Then keep fetching every 3 seconds — basically real time!
             const realTimeRefresh = setInterval(() => {
                 fetchStudents();
-            }, 10000);
+            }, 3 * 1000);
 
             return () => clearInterval(realTimeRefresh);
         }
@@ -79,7 +81,7 @@ const Admin = () => {
     const toggleApproval = async (id) => {
         try {
             await axios.put(`${API_URL}/api/students/${id}/approve`);
-            fetchStudents();
+            fetchStudents(); // Refresh immediately after action!
         } catch (error) {
             alert("Error updating status");
         }
@@ -92,10 +94,9 @@ const Admin = () => {
                 paymentRequired: !paymentRequired
             });
             setPaymentRequired(res.data.paymentRequired);
-            // Refresh students immediately after mode switch!
-            fetchStudents();
-            alert(`Payment mode is now ${res.data.paymentRequired 
-                ? 'ON 🔴 - Students must pay!' 
+            fetchStudents(); // Refresh table immediately after switch!
+            alert(`Payment mode is now ${res.data.paymentRequired
+                ? 'ON 🔴 - Students must pay!'
                 : 'OFF 🟢 - Everyone watches free!'
             }`);
         } catch (error) {
@@ -120,7 +121,7 @@ const Admin = () => {
 
     // =====================================
     // 🔐 GATE — ALWAYS ASKS PASSWORD!
-    // Ctrl+Shift+R, tab switch, URL type = password required!
+    // Ctrl+Shift+R, tab switch, URL = password!
     // =====================================
     if (!isAuthenticated) {
         return (
@@ -193,24 +194,28 @@ const Admin = () => {
         );
     }
 
-    if (loading) return <h2 style={{textAlign: 'center'}}>Opening the Vault... 🦾</h2>;
+    if (loading) return <h2 style={{ textAlign: 'center' }}>Opening the Vault... 🦾</h2>;
 
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
 
-            {/* HEADER WITH LOGOUT */}
+            {/* HEADER WITH LOGOUT + LIVE INDICATOR */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <h1 style={{ color: '#333', margin: 0 }}>Oga's Admin Dashboard 💰</h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    {/* 🔥 FIX 6 — REAL TIME INDICATOR */}
-                    <span style={{ 
-                        color: 'green', 
-                        fontSize: '0.8rem', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '5px' 
+                    {/* REAL TIME INDICATOR */}
+                    <span style={{
+                        color: 'green',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: '#eaffea',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        border: '1px solid #28a745'
                     }}>
-                        🟢 Live — updates every 10s
+                        🟢 Live Updates
                     </span>
                     <button
                         onClick={handleAdminLogout}
@@ -238,7 +243,7 @@ const Admin = () => {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Status</th>
-                                {/* FIX 2 & 3 — Show different columns based on mode! */}
+                                {/* FIX 2 & 3 — columns based on mode! */}
                                 {paymentRequired && <th>Expiry Date</th>}
                                 {paymentRequired && <th>Action</th>}
                                 {!paymentRequired && <th>Access</th>}
@@ -247,27 +252,25 @@ const Admin = () => {
                         <tbody>
                             {students.map((s) => (
                                 <tr key={s._id} style={{
-                                    // FIX 2 — Everyone green in free mode!
                                     background: paymentRequired
                                         ? (s.isPaid ? '#eaffea' : '#fff')
-                                        : '#eaffea'
+                                        : '#eaffea' // Everyone green in free mode!
                                 }}>
                                     <td>{s.name}</td>
                                     <td>{s.email}</td>
-                                    <td style={{ 
-                                        fontWeight: 'bold', 
-                                        color: paymentRequired 
-                                            ? (s.isPaid ? 'green' : 'red') 
-                                            : 'green' 
+                                    <td style={{
+                                        fontWeight: 'bold',
+                                        color: paymentRequired
+                                            ? (s.isPaid ? 'green' : 'red')
+                                            : 'green'
                                     }}>
-                                        {/* FIX 2 — Free mode shows FREE ACCESS */}
                                         {paymentRequired
                                             ? (s.isPaid ? "APPROVED ✅" : "PENDING ⏳")
                                             : "FREE ACCESS 🟢"
                                         }
                                     </td>
 
-                                    {/* FIX 3 — Expiry date ONLY in payment mode */}
+                                    {/* Expiry date — ONLY in payment mode */}
                                     {paymentRequired && (
                                         <td style={{ color: '#666', fontSize: '0.9rem' }}>
                                             {s.expiryDate
@@ -283,7 +286,7 @@ const Admin = () => {
                                         </td>
                                     )}
 
-                                    {/* FIX 3 — Approve/Disapprove ONLY in payment mode */}
+                                    {/* Approve/Disapprove — ONLY in payment mode */}
                                     {paymentRequired && (
                                         <td>
                                             <button
@@ -301,7 +304,7 @@ const Admin = () => {
                                         </td>
                                     )}
 
-                                    {/* FIX 2 — Free mode shows Watch for Free */}
+                                    {/* Free mode — Watching Free */}
                                     {!paymentRequired && (
                                         <td style={{ color: 'green', fontWeight: 'bold' }}>
                                             🟢 Watching Free
@@ -363,7 +366,7 @@ const Admin = () => {
                         placeholder="Video Title (e.g. Simultaneous Equations Part 1)"
                         value={videoData.title}
                         style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
-                        onChange={(e) => setVideoData({...videoData, title: e.target.value})}
+                        onChange={(e) => setVideoData({ ...videoData, title: e.target.value })}
                         required
                     />
                     <input
@@ -371,14 +374,14 @@ const Admin = () => {
                         placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)"
                         value={videoData.videoId}
                         style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
-                        onChange={(e) => setVideoData({...videoData, videoId: e.target.value})}
+                        onChange={(e) => setVideoData({ ...videoData, videoId: e.target.value })}
                         required
                     />
                     <textarea
                         placeholder="Describe what they will learn in this math lesson..."
                         value={videoData.description}
                         style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc', minHeight: '100px' }}
-                        onChange={(e) => setVideoData({...videoData, description: e.target.value})}
+                        onChange={(e) => setVideoData({ ...videoData, description: e.target.value })}
                     />
                     <button
                         type="submit"

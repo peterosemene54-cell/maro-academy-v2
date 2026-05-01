@@ -17,55 +17,55 @@ const VideoVault = ({ user }) => {
 
   // ===============================
   // ⏰ MIGHTY EXPIRY WATCHER
-  // Handles BOTH refresh and auto-kick!
+  // Checks every 5 seconds — kicks instantly!
   // ===============================
   useEffect(() => {
     const checkExpiry = async () => {
       // Step 1 — Get saved user from localStorage
       const savedUser = localStorage.getItem('maroUser');
-      if (!savedUser) return;
+
+      // No user found — send to login!
+      if (!savedUser) {
+        navigate('/login');
+        return;
+      }
 
       const userData = JSON.parse(savedUser);
 
-      // Step 2 — Only check if they have an expiry date
+      // Step 2 — If no expiryDate, they are on free mode — let them watch!
       if (!userData.expiryDate) return;
 
-      // Step 3 — Compare today vs expiry date
-      const today = new Date();
+      // Step 3 — Compare right now vs expiry date
+      const now = new Date();
       const expiry = new Date(userData.expiryDate);
 
-      console.log("⏰ Checking expiry...");
-      console.log("Today:", today);
-      console.log("Expiry:", expiry);
-      console.log("Expired?", today > expiry);
+      // Step 4 — If expired, kick them out!
+      if (now > expiry) {
+        console.log("🔴 EXPIRED! Kicking out NOW! GBAMA! 💥");
 
-      if (today > expiry) {
-        console.log("🔴 EXPIRED! Kicking out...");
-
-        // Step 4 — Tell server to flip student to PENDING in admin table!
+        // Step 5 — Tell server to flip student to PENDING in admin table!
         try {
           await axios.put(`${API_URL}/api/students/auto-expire`);
-          console.log("✅ Admin table updated to PENDING!");
+          console.log("✅ Admin table flipped to PENDING!");
         } catch (e) {
-          console.error("Could not update admin table", e);
+          console.error("Could not update admin", e);
         }
 
-        // Step 5 — Clear their localStorage so they cant get back in
+        // Step 6 — Clear their localStorage
         localStorage.removeItem('maroUser');
 
-        // Step 6 — KICK THEM TO RENEWAL PAGE! GBAMA! 💥
+        // Step 7 — KICK TO RENEWAL PAGE! 💥
         navigate('/access-denied', { state: { expired: true } });
       }
     };
 
-    // 🔥 Check IMMEDIATELY when page loads or refreshes
+    // ⚡ Check IMMEDIATELY when page loads or refreshes
     checkExpiry();
 
-    // 🔥 Then check every 5 minutes while they watch
-    // This handles the case where they dont refresh at all!
-    const expiryWatcher = setInterval(checkExpiry, 5 * 60 * 1000);
+    // ⚡ Then check every 5 seconds — basically instant kick!
+    const expiryWatcher = setInterval(checkExpiry, 5 * 1000);
 
-    // Clean up when they leave the page
+    // Clean up when they leave
     return () => clearInterval(expiryWatcher);
 
   }, [navigate]);
