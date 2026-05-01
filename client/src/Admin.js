@@ -7,11 +7,9 @@ const API_URL = "https://maro-academy-v2.onrender.com";
 const ADMIN_PASSWORD = "MaroAdmin2026";
 
 const Admin = () => {
-    // 🆕 GATE KEEPER STATE
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        // Remember admin login during session
-        return sessionStorage.getItem('adminAuth') === 'true';
-    });
+    // 🔐 FIX 1 — ALWAYS FALSE! No sessionStorage, no localStorage!
+    // Dies the moment you leave the page — password always required on return!
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
 
@@ -21,12 +19,11 @@ const Admin = () => {
     const [uploading, setUploading] = useState(false);
     const [paymentRequired, setPaymentRequired] = useState(false);
 
-    // 🔐 ADMIN LOGIN HANDLER
+    // 🔐 ADMIN LOGIN — NO sessionStorage!
     const handleAdminLogin = (e) => {
         e.preventDefault();
         if (passwordInput === ADMIN_PASSWORD) {
             setIsAuthenticated(true);
-            sessionStorage.setItem('adminAuth', 'true');
             setPasswordError('');
         } else {
             setPasswordError('❌ Wrong password! Try again.');
@@ -37,9 +34,10 @@ const Admin = () => {
     // 🔐 ADMIN LOGOUT
     const handleAdminLogout = () => {
         setIsAuthenticated(false);
-        sessionStorage.removeItem('adminAuth');
+        setPasswordInput('');
     };
 
+    // 📥 FETCH ALL STUDENTS
     const fetchStudents = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/students`);
@@ -51,6 +49,7 @@ const Admin = () => {
         }
     };
 
+    // ⚙️ FETCH SETTINGS
     const fetchSettings = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/settings`);
@@ -60,13 +59,23 @@ const Admin = () => {
         }
     };
 
+    // 🔥 FIX 6 — REAL TIME! Fetch students every 10 seconds automatically!
+    // No need to reload — admin table updates by itself!
     useEffect(() => {
         if (isAuthenticated) {
             fetchStudents();
             fetchSettings();
+
+            // 🔄 AUTO REFRESH every 10 seconds — real time updates!
+            const realTimeRefresh = setInterval(() => {
+                fetchStudents();
+            }, 10000);
+
+            return () => clearInterval(realTimeRefresh);
         }
     }, [isAuthenticated]);
 
+    // ✅ APPROVE/DISAPPROVE
     const toggleApproval = async (id) => {
         try {
             await axios.put(`${API_URL}/api/students/${id}/approve`);
@@ -76,18 +85,25 @@ const Admin = () => {
         }
     };
 
+    // 💰 TOGGLE PAYMENT MODE
     const togglePaymentMode = async () => {
         try {
             const res = await axios.put(`${API_URL}/api/settings`, {
                 paymentRequired: !paymentRequired
             });
             setPaymentRequired(res.data.paymentRequired);
-            alert(`Payment mode is now ${res.data.paymentRequired ? 'ON 🔴 - Students must pay!' : 'OFF 🟢 - Everyone watches free!'}`);
+            // Refresh students immediately after mode switch!
+            fetchStudents();
+            alert(`Payment mode is now ${res.data.paymentRequired 
+                ? 'ON 🔴 - Students must pay!' 
+                : 'OFF 🟢 - Everyone watches free!'
+            }`);
         } catch (error) {
             alert("Error updating payment mode");
         }
     };
 
+    // 📤 PUBLISH VIDEO
     const handleVideoUpload = async (e) => {
         e.preventDefault();
         setUploading(true);
@@ -103,7 +119,8 @@ const Admin = () => {
     };
 
     // =====================================
-    // 🔐 GATE — SHOW PASSWORD PAGE FIRST!
+    // 🔐 GATE — ALWAYS ASKS PASSWORD!
+    // Ctrl+Shift+R, tab switch, URL type = password required!
     // =====================================
     if (!isAuthenticated) {
         return (
@@ -125,9 +142,7 @@ const Admin = () => {
                     textAlign: 'center',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
                 }}>
-                    {/* LOCK ICON */}
                     <div style={{ fontSize: '4rem', marginBottom: '10px' }}>🔐</div>
-                    
                     <h2 style={{ color: '#ffd700', marginBottom: '5px' }}>
                         OGA'S SECRET VAULT
                     </h2>
@@ -153,14 +168,11 @@ const Admin = () => {
                                 letterSpacing: '4px'
                             }}
                         />
-
-                        {/* ERROR MESSAGE */}
                         {passwordError && (
                             <p style={{ color: '#ff4d4d', fontSize: '0.9rem', margin: 0 }}>
                                 {passwordError}
                             </p>
                         )}
-
                         <button
                             type="submit"
                             style={{
@@ -181,30 +193,39 @@ const Admin = () => {
         );
     }
 
-    // =====================================
-    // ✅ ADMIN DASHBOARD — AFTER PASSWORD!
-    // =====================================
     if (loading) return <h2 style={{textAlign: 'center'}}>Opening the Vault... 🦾</h2>;
 
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
-            
+
             {/* HEADER WITH LOGOUT */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <h1 style={{ color: '#333', margin: 0 }}>Oga's Admin Dashboard 💰</h1>
-                <button
-                    onClick={handleAdminLogout}
-                    style={{
-                        background: '#ff4d4d',
-                        color: 'white',
-                        padding: '10px 20px',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    {/* 🔥 FIX 6 — REAL TIME INDICATOR */}
+                    <span style={{ 
+                        color: 'green', 
+                        fontSize: '0.8rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '5px' 
                     }}>
-                    🔒 Lock Vault
-                </button>
+                        🟢 Live — updates every 10s
+                    </span>
+                    <button
+                        onClick={handleAdminLogout}
+                        style={{
+                            background: '#ff4d4d',
+                            color: 'white',
+                            padding: '10px 20px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}>
+                        🔒 Lock Vault
+                    </button>
+                </div>
             </div>
 
             {/* --- STUDENT SECTION --- */}
@@ -217,42 +238,75 @@ const Admin = () => {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Status</th>
-                                <th>Expiry Date</th>
-                                <th>Action</th>
+                                {/* FIX 2 & 3 — Show different columns based on mode! */}
+                                {paymentRequired && <th>Expiry Date</th>}
+                                {paymentRequired && <th>Action</th>}
+                                {!paymentRequired && <th>Access</th>}
                             </tr>
                         </thead>
                         <tbody>
                             {students.map((s) => (
-                                <tr key={s._id} style={{ background: s.isPaid ? '#eaffea' : '#fff' }}>
+                                <tr key={s._id} style={{
+                                    // FIX 2 — Everyone green in free mode!
+                                    background: paymentRequired
+                                        ? (s.isPaid ? '#eaffea' : '#fff')
+                                        : '#eaffea'
+                                }}>
                                     <td>{s.name}</td>
                                     <td>{s.email}</td>
-                                    <td style={{ fontWeight: 'bold', color: s.isPaid ? 'green' : 'red' }}>
-                                        {s.isPaid ? "APPROVED ✅" : "PENDING ⏳"}
-                                    </td>
-                                    <td style={{ color: '#666', fontSize: '0.9rem' }}>
-                                        {s.expiryDate 
-                                            ? new Date(s.expiryDate).toLocaleDateString('en-NG', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric'
-                                              })
-                                            : 'Not set'
+                                    <td style={{ 
+                                        fontWeight: 'bold', 
+                                        color: paymentRequired 
+                                            ? (s.isPaid ? 'green' : 'red') 
+                                            : 'green' 
+                                    }}>
+                                        {/* FIX 2 — Free mode shows FREE ACCESS */}
+                                        {paymentRequired
+                                            ? (s.isPaid ? "APPROVED ✅" : "PENDING ⏳")
+                                            : "FREE ACCESS 🟢"
                                         }
                                     </td>
-                                    <td>
-                                        <button 
-                                            onClick={() => toggleApproval(s._id)}
-                                            style={{ 
-                                                padding: '8px 12px', 
-                                                cursor: 'pointer',
-                                                background: s.isPaid ? '#ff4d4d' : '#28a745',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '4px'
-                                            }}>
-                                            {s.isPaid ? "Disapprove" : "Approve Student"}
-                                        </button>
-                                    </td>
+
+                                    {/* FIX 3 — Expiry date ONLY in payment mode */}
+                                    {paymentRequired && (
+                                        <td style={{ color: '#666', fontSize: '0.9rem' }}>
+                                            {s.expiryDate
+                                                ? new Date(s.expiryDate).toLocaleString('en-NG', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
+                                                : 'Not set'
+                                            }
+                                        </td>
+                                    )}
+
+                                    {/* FIX 3 — Approve/Disapprove ONLY in payment mode */}
+                                    {paymentRequired && (
+                                        <td>
+                                            <button
+                                                onClick={() => toggleApproval(s._id)}
+                                                style={{
+                                                    padding: '8px 12px',
+                                                    cursor: 'pointer',
+                                                    background: s.isPaid ? '#ff4d4d' : '#28a745',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px'
+                                                }}>
+                                                {s.isPaid ? "Disapprove" : "Approve Student"}
+                                            </button>
+                                        </td>
+                                    )}
+
+                                    {/* FIX 2 — Free mode shows Watch for Free */}
+                                    {!paymentRequired && (
+                                        <td style={{ color: 'green', fontWeight: 'bold' }}>
+                                            🟢 Watching Free
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
@@ -261,19 +315,22 @@ const Admin = () => {
             </div>
 
             {/* --- PAYMENT MODE TOGGLE --- */}
-            <div style={{ 
-                marginTop: '30px', 
-                padding: '30px', 
-                border: `2px solid ${paymentRequired ? '#ff4d4d' : '#28a745'}`, 
-                borderRadius: '15px', 
-                background: '#f9f9f9' 
+            <div style={{
+                marginTop: '30px',
+                padding: '30px',
+                border: `2px solid ${paymentRequired ? '#ff4d4d' : '#28a745'}`,
+                borderRadius: '15px',
+                background: '#f9f9f9'
             }}>
                 <h2 style={{ color: '#333', margin: '0 0 10px 0' }}>
                     💰 Payment Mode Control
                 </h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>
                     Current Status: <b style={{ color: paymentRequired ? 'red' : 'green' }}>
-                        {paymentRequired ? '🔴 PAYMENT REQUIRED — Students must pay to watch' : '🟢 FREE ACCESS — Everyone watches for free'}
+                        {paymentRequired
+                            ? '🔴 PAYMENT REQUIRED — Students must pay to watch'
+                            : '🟢 FREE ACCESS — Everyone watches for free'
+                        }
                     </b>
                 </p>
                 <button
@@ -288,8 +345,8 @@ const Admin = () => {
                         cursor: 'pointer',
                         fontSize: '1rem'
                     }}>
-                    {paymentRequired 
-                        ? '🟢 SWITCH TO FREE MODE' 
+                    {paymentRequired
+                        ? '🟢 SWITCH TO FREE MODE'
                         : '🔴 SWITCH TO PAYMENT MODE'
                     }
                 </button>
@@ -301,38 +358,38 @@ const Admin = () => {
                 <p style={{ color: '#666', marginBottom: '20px' }}>This sends the video straight to the Student Video Vault.</p>
 
                 <form onSubmit={handleVideoUpload} style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '600px' }}>
-                    <input 
-                        type="text" 
-                        placeholder="Video Title (e.g. Simultaneous Equations Part 1)" 
+                    <input
+                        type="text"
+                        placeholder="Video Title (e.g. Simultaneous Equations Part 1)"
                         value={videoData.title}
                         style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
                         onChange={(e) => setVideoData({...videoData, title: e.target.value})}
-                        required 
+                        required
                     />
-                    <input 
-                        type="text" 
-                        placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)" 
+                    <input
+                        type="text"
+                        placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)"
                         value={videoData.videoId}
                         style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
                         onChange={(e) => setVideoData({...videoData, videoId: e.target.value})}
-                        required 
+                        required
                     />
-                    <textarea 
-                        placeholder="Describe what they will learn in this math lesson..." 
+                    <textarea
+                        placeholder="Describe what they will learn in this math lesson..."
                         value={videoData.description}
                         style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc', minHeight: '100px' }}
                         onChange={(e) => setVideoData({...videoData, description: e.target.value})}
                     />
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={uploading}
-                        style={{ 
-                            background: uploading ? '#888' : '#333', 
-                            color: '#fff', 
-                            padding: '15px', 
-                            border: 'none', 
-                            borderRadius: '6px', 
-                            fontWeight: 'bold', 
+                        style={{
+                            background: uploading ? '#888' : '#333',
+                            color: '#fff',
+                            padding: '15px',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
                             cursor: 'pointer',
                             fontSize: '1rem'
                         }}>
