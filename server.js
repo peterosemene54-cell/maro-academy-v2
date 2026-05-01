@@ -147,7 +147,8 @@ app.put('/api/students/:id/approve', async (req, res) => {
             student.paymentDate = new Date();
             // Only set expiry in payment mode!
             if (paymentRequired) {
-                student.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                //student.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                student.expiryDate = new Date(Date.now() + 2 * 60 * 1000);
             } else {
                 student.expiryDate = null;
             }
