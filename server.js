@@ -75,45 +75,50 @@ app.post('/api/login', async (req, res) => {
 
         // ❌ User not found
         if (!user) {
-            return res.status(404).json({ 
-                message: "This account is not registered in our database." 
+            return res.status(404).json({
+                message: "This account is not registered in our database."
             });
         }
 
         // ❌ Wrong password
         if (user.password !== password) {
-            return res.status(401).json({ 
-                message: "Invalid credentials. Please verify your password." 
+            return res.status(401).json({
+                message: "Invalid credentials. Please verify your password."
             });
         }
 
-        // ⏰ AUTO EXPIRY CHECK — runs every single time they login!
-        // If they paid before AND have an expiry date AND that date has passed...
+        // ⏰ AUTO EXPIRY CHECK ON LOGIN!
         if (user.isPaid && user.expiryDate) {
             const today = new Date();
             const expiry = new Date(user.expiryDate);
 
             if (today > expiry) {
-                // 🔴 30 DAYS OVER! Auto-revoke their access!
+                // 🔴 EXPIRED! Auto-revoke access!
                 user.isPaid = false;
                 user.paymentDate = null;
                 user.expiryDate = null;
-                await user.save(); // Save the revoked status to database
+                await user.save();
 
-                // Tell frontend they are expired — triggers redirect!
-                return res.status(403).json({ 
+                return res.status(403).json({
                     message: "Your 30-day subscription has expired. Please renew to continue.",
-                    expired: true // 🚨 This flag is what Login.js watches for!
+                    expired: true
                 });
             }
         }
 
-        // ✅ Everything is fine — send user data to frontend
-        res.json(user);
+        // ✅ Send FULL user data including expiryDate to frontend!
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isPaid: user.isPaid,
+            paymentDate: user.paymentDate,
+            expiryDate: user.expiryDate  // 🆕 THIS IS KEY! Sends expiry to localStorage!
+        });
 
     } catch (error) {
-        res.status(500).json({ 
-            message: "Our security systems are currently verifying. Please try again." 
+        res.status(500).json({
+            message: "Our security systems are currently verifying. Please try again."
         });
     }
 });
@@ -128,28 +133,62 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
-// APPROVE/DISAPPROVE — WITH 30 DAY EXPIRY!
+// ✅ APPROVE/DISAPPROVE — CHECKS PAYMENT MODE!
 app.put('/api/students/:id/approve', async (req, res) => {
     try {
         const student = await User.findById(req.params.id);
         student.isPaid = !student.isPaid;
 
+        // Check payment mode first!
+        const setting = await Setting.findOne();
+        const paymentRequired = setting ? setting.paymentRequired : false;
+
         if (student.isPaid) {
-            // ✅ APPROVING — set payment date and 30 day expiry
             student.paymentDate = new Date();
-            student.expiryDate = new Date(Date.now() + 2 * 60 * 1000);
-            
+            // Only set expiry in payment mode!
+            if (paymentRequired) {
+                student.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            } else {
+                student.expiryDate = null;
+            }
         } else {
-            // ❌ DISAPPROVING — clear all dates
             student.paymentDate = null;
             student.expiryDate = null;
         }
 
         await student.save();
-        res.json({ 
-            message: "Status Updated!", 
+        res.json({
+            message: "Status Updated!",
             isPaid: student.isPaid,
-            expiryDate: student.expiryDate 
+            expiryDate: student.expiryDate
+        });
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
+// 🆕 AUTO EXPIRE ROUTE — flips expired students to PENDING in admin!
+app.put('/api/students/auto-expire', async (req, res) => {
+    try {
+        const now = new Date();
+
+        // Find all paid students whose expiry date has passed
+        const expiredStudents = await User.find({
+            isPaid: true,
+            expiryDate: { $lt: now }
+        });
+
+        // Auto disapprove all expired students
+        for (const student of expiredStudents) {
+            student.isPaid = false;
+            student.paymentDate = null;
+            student.expiryDate = null;
+            await student.save();
+        }
+
+        res.json({
+            message: `${expiredStudents.length} students auto-expired!`,
+            expiredCount: expiredStudents.length
         });
     } catch (error) {
         res.status(500).send(error);

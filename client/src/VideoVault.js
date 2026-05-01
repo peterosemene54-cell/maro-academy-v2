@@ -16,33 +16,53 @@ const VideoVault = ({ user }) => {
   const API_URL = "https://maro-academy-v2.onrender.com";
 
   // ===============================
-  // ⏰ AUTO EXPIRY WATCHER — KICKS EXPIRED USERS OUT WHILE WATCHING!
+  // ⏰ MIGHTY EXPIRY WATCHER
+  // Handles BOTH refresh and auto-kick!
   // ===============================
   useEffect(() => {
-    const checkExpiry = () => {
-      // Get saved user from localStorage
+    const checkExpiry = async () => {
+      // Step 1 — Get saved user from localStorage
       const savedUser = localStorage.getItem('maroUser');
       if (!savedUser) return;
 
       const userData = JSON.parse(savedUser);
 
-      // Only check if they have an expiry date
-      if (userData.expiryDate) {
-        const today = new Date();
-        const expiry = new Date(userData.expiryDate);
+      // Step 2 — Only check if they have an expiry date
+      if (!userData.expiryDate) return;
 
-        if (today > expiry) {
-          // ⏰ EXPIRED! Clear their data and kick them out!
-          localStorage.removeItem('maroUser');
-          navigate('/access-denied', { state: { expired: true } });
+      // Step 3 — Compare today vs expiry date
+      const today = new Date();
+      const expiry = new Date(userData.expiryDate);
+
+      console.log("⏰ Checking expiry...");
+      console.log("Today:", today);
+      console.log("Expiry:", expiry);
+      console.log("Expired?", today > expiry);
+
+      if (today > expiry) {
+        console.log("🔴 EXPIRED! Kicking out...");
+
+        // Step 4 — Tell server to flip student to PENDING in admin table!
+        try {
+          await axios.put(`${API_URL}/api/students/auto-expire`);
+          console.log("✅ Admin table updated to PENDING!");
+        } catch (e) {
+          console.error("Could not update admin table", e);
         }
+
+        // Step 5 — Clear their localStorage so they cant get back in
+        localStorage.removeItem('maroUser');
+
+        // Step 6 — KICK THEM TO RENEWAL PAGE! GBAMA! 💥
+        navigate('/access-denied', { state: { expired: true } });
       }
     };
 
-    // Check immediately when page loads or refreshes
+    // 🔥 Check IMMEDIATELY when page loads or refreshes
     checkExpiry();
 
-    // Then keep checking silently every 5 minutes while they watch
+    // 🔥 Then check every 5 minutes while they watch
+    // This handles the case where they dont refresh at all!
     const expiryWatcher = setInterval(checkExpiry, 5 * 60 * 1000);
 
     // Clean up when they leave the page
@@ -106,10 +126,8 @@ const VideoVault = ({ user }) => {
   }, [initializeVault]);
 
   // ===============================
-  // 🎥 THE MIGHTY PLAYER ENGINE (FINAL FIX)
+  // 🎥 THE MIGHTY PLAYER ENGINE
   // ===============================
-
-  // Step 1 — Create the player ONCE on mount, never destroy it
   useEffect(() => {
     const tryCreatePlayer = () => {
       const el = document.getElementById(playerDivId);
@@ -166,7 +184,7 @@ const VideoVault = ({ user }) => {
     };
   }, []);
 
-  // Step 2 — When activeVideo changes, just load the new video into existing player
+  // Step 2 — Load video when activeVideo changes
   useEffect(() => {
     if (!activeVideo) return;
 
@@ -268,17 +286,11 @@ const VideoVault = ({ user }) => {
             <>
               <div style={styles.playerWrapper}>
                 <div id={playerDivId} style={styles.playerDiv} />
-                {/* Full shield - blocks all clicks */}
                 <div style={styles.mightyShield} />
-                {/* TOP LEFT - covers YouTube watermark */}
                 <div style={styles.topLeftBlocker} />
-                {/* TOP RIGHT - covers YouTube logo */}
                 <div style={styles.topRightBlocker} />
-                {/* BOTTOM - covers controls bar */}
                 <div style={styles.bottomBlocker} />
-                {/* BOTTOM LEFT - covers watch later button */}
                 <div style={styles.bottomLeftBlocker} />
-                {/* CENTER TOP - extra coverage */}
                 <div style={styles.centerTopBlocker} />
 
                 {videoEnded && (
