@@ -137,7 +137,8 @@ app.put('/api/students/:id/approve', async (req, res) => {
         if (student.isPaid) {
             // ✅ APPROVING — set payment date and 30 day expiry
             student.paymentDate = new Date();
-            student.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            student.expiryDate = new Date(Date.now() + 2 * 60 * 1000);
+            
         } else {
             // ❌ DISAPPROVING — clear all dates
             student.paymentDate = null;
