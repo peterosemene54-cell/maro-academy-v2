@@ -15,25 +15,24 @@ const Login = ({ setUser }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // 🚀 TALKING TO YOUR RENDER SERVER
             const res = await axios.post(`${API_URL}/api/login`, { email, password });
             
-            // 🔑 Getting the user data (including isPaid + expiryDate!)
             const loggedInUser = res.data;
-
-            // Save user to App state
             setUser(loggedInUser);
 
-            // 🛡️ ALWAYS SEND TO VAULT - App.js decides if they can enter!
-            // FREE MODE = everyone gets in
-            // PAID MODE = App.js checks isPaid and expiryDate
+            // 🛡️ Send to vault - App.js decides access
             navigate("/video-vault");
 
         } catch (error) {
-            // 📢 Professional message from server
+            // 🆕 CHECK IF THEY ARE EXPIRED!
+            if (error.response?.status === 403 && error.response?.data?.expired) {
+                // ⏰ Subscription expired - send to renewal page!
+                navigate("/access-denied", { state: { expired: true } });
+                return;
+            }
+
+            // Normal error messages
             const professionalMessage = error.response?.data?.message || "Connection error. Please check your internet.";
-            
-            // 🔐 Security alert
             alert("🛡️ MARO ACADEMY SECURITY:\n\n" + professionalMessage + " ❌");
         } finally {
             setLoading(false);
