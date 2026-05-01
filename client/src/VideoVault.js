@@ -16,6 +16,41 @@ const VideoVault = ({ user }) => {
   const API_URL = "https://maro-academy-v2.onrender.com";
 
   // ===============================
+  // ⏰ AUTO EXPIRY WATCHER — KICKS EXPIRED USERS OUT WHILE WATCHING!
+  // ===============================
+  useEffect(() => {
+    const checkExpiry = () => {
+      // Get saved user from localStorage
+      const savedUser = localStorage.getItem('maroUser');
+      if (!savedUser) return;
+
+      const userData = JSON.parse(savedUser);
+
+      // Only check if they have an expiry date
+      if (userData.expiryDate) {
+        const today = new Date();
+        const expiry = new Date(userData.expiryDate);
+
+        if (today > expiry) {
+          // ⏰ EXPIRED! Clear their data and kick them out!
+          localStorage.removeItem('maroUser');
+          navigate('/access-denied', { state: { expired: true } });
+        }
+      }
+    };
+
+    // Check immediately when page loads or refreshes
+    checkExpiry();
+
+    // Then keep checking silently every 5 minutes while they watch
+    const expiryWatcher = setInterval(checkExpiry, 5 * 60 * 1000);
+
+    // Clean up when they leave the page
+    return () => clearInterval(expiryWatcher);
+
+  }, [navigate]);
+
+  // ===============================
   // 🛡️ SECURITY & RESPONSIVENESS
   // ===============================
   useEffect(() => {
@@ -76,12 +111,11 @@ const VideoVault = ({ user }) => {
 
   // Step 1 — Create the player ONCE on mount, never destroy it
   useEffect(() => {
-    // ✅ BULLETPROOF: poll every 100ms until both the div AND YT.Player exist
     const tryCreatePlayer = () => {
       const el = document.getElementById(playerDivId);
       if (!el) { setTimeout(tryCreatePlayer, 100); return; }
       if (!window.YT || !window.YT.Player) { setTimeout(tryCreatePlayer, 100); return; }
-      if (playerRef.current) return; // already created
+      if (playerRef.current) return;
 
       console.log("🏛️ CREATING PLAYER...");
 
@@ -115,7 +149,6 @@ const VideoVault = ({ user }) => {
       });
     };
 
-    // Inject YouTube API script if not already there
     if (!document.getElementById('yt-iframe-api')) {
       const tag = document.createElement('script');
       tag.id = 'yt-iframe-api';
@@ -123,7 +156,6 @@ const VideoVault = ({ user }) => {
       document.body.appendChild(tag);
     }
 
-    // Start polling — works whether YT was already loaded or loads fresh
     setTimeout(tryCreatePlayer, 300);
 
     return () => {
@@ -132,7 +164,7 @@ const VideoVault = ({ user }) => {
         playerRef.current = null;
       }
     };
-  }, []); // ✅ runs ONCE only on mount
+  }, []);
 
   // Step 2 — When activeVideo changes, just load the new video into existing player
   useEffect(() => {
@@ -145,11 +177,8 @@ const VideoVault = ({ user }) => {
       localStorage.getItem(`progress_${activeVideo._id}`) || '0'
     );
 
-    // ✅ KEY FIX: use cueVideoById instead of destroying/recreating player
-    // This swaps the video WITHOUT touching the player instance at all
     const loadVideo = () => {
       if (!playerRef.current || typeof playerRef.current.cueVideoById !== 'function') {
-        // Player not ready yet, wait and retry
         setTimeout(loadVideo, 300);
         return;
       }
@@ -343,28 +372,22 @@ const styles = {
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' },
   layout: { display: 'flex', gap: '30px', maxWidth: '100%', margin: '0 auto', padding: '0 40px' },
   playerSection: { minWidth: 0 },
-
-  // ✅ FIX: use paddingBottom % trick for true responsive 16:9
-  // and slightly increased size by bumping paddingBottom from 56.25% to 58%
   playerWrapper: {
     position: 'relative',
     width: '100%',
-    paddingBottom: '58%',   // slightly taller than 16:9 (56.25%) for a bigger feel
+    paddingBottom: '58%',
     background: '#000',
     borderRadius: '24px',
     overflow: 'hidden',
     boxShadow: '0 30px 60px rgba(0,0,0,0.7)',
     border: '1px solid #111',
   },
-
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
-
-topRightBlocker: { display: 'none' },
+  topRightBlocker: { display: 'none' },
   bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
-topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.85)', zIndex: 11 },
-centerTopBlocker: { display: 'none' },
-
+  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.85)', zIndex: 11 },
+  centerTopBlocker: { display: 'none' },
   endOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   endCard: { textAlign: 'center', padding: '40px' },
   endIcon: { fontSize: '4rem', marginBottom: '15px' },

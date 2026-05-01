@@ -3,16 +3,43 @@ import axios from 'axios';
 
 const API_URL = "https://maro-academy-v2.onrender.com";
 
+// 🔐 YOUR SECRET ADMIN PASSWORD — CHANGE THIS!
+const ADMIN_PASSWORD = "MaroAdmin2026";
+
 const Admin = () => {
+    // 🆕 GATE KEEPER STATE
+    const [isAuthenticated, setIsAuthenticated] = useState(() => {
+        // Remember admin login during session
+        return sessionStorage.getItem('adminAuth') === 'true';
+    });
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [videoData, setVideoData] = useState({ title: '', videoId: '', description: '' });
     const [uploading, setUploading] = useState(false);
-
-    // 🆕 FREE MODE STATE
     const [paymentRequired, setPaymentRequired] = useState(false);
 
-    // 📥 FETCH ALL STUDENTS
+    // 🔐 ADMIN LOGIN HANDLER
+    const handleAdminLogin = (e) => {
+        e.preventDefault();
+        if (passwordInput === ADMIN_PASSWORD) {
+            setIsAuthenticated(true);
+            sessionStorage.setItem('adminAuth', 'true');
+            setPasswordError('');
+        } else {
+            setPasswordError('❌ Wrong password! Try again.');
+            setPasswordInput('');
+        }
+    };
+
+    // 🔐 ADMIN LOGOUT
+    const handleAdminLogout = () => {
+        setIsAuthenticated(false);
+        sessionStorage.removeItem('adminAuth');
+    };
+
     const fetchStudents = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/students`);
@@ -24,7 +51,6 @@ const Admin = () => {
         }
     };
 
-    // 🆕 FETCH PAYMENT MODE SETTING
     const fetchSettings = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/settings`);
@@ -35,21 +61,21 @@ const Admin = () => {
     };
 
     useEffect(() => {
-        fetchStudents();
-        fetchSettings(); // 🆕 FETCH SETTINGS ON LOAD
-    }, []);
+        if (isAuthenticated) {
+            fetchStudents();
+            fetchSettings();
+        }
+    }, [isAuthenticated]);
 
-    // ✅ APPROVE/DISAPPROVE LOGIC
     const toggleApproval = async (id) => {
         try {
             await axios.put(`${API_URL}/api/students/${id}/approve`);
-            fetchStudents(); 
+            fetchStudents();
         } catch (error) {
             alert("Error updating status");
         }
     };
 
-    // 🆕 TOGGLE PAYMENT MODE
     const togglePaymentMode = async () => {
         try {
             const res = await axios.put(`${API_URL}/api/settings`, {
@@ -62,7 +88,6 @@ const Admin = () => {
         }
     };
 
-    // 🎬 PUBLISH VIDEO LOGIC
     const handleVideoUpload = async (e) => {
         e.preventDefault();
         setUploading(true);
@@ -77,12 +102,111 @@ const Admin = () => {
         }
     };
 
+    // =====================================
+    // 🔐 GATE — SHOW PASSWORD PAGE FIRST!
+    // =====================================
+    if (!isAuthenticated) {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                background: '#0a0a0a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'Arial, sans-serif'
+            }}>
+                <div style={{
+                    background: '#111',
+                    padding: '50px 40px',
+                    borderRadius: '20px',
+                    border: '1px solid #222',
+                    maxWidth: '400px',
+                    width: '100%',
+                    textAlign: 'center',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                }}>
+                    {/* LOCK ICON */}
+                    <div style={{ fontSize: '4rem', marginBottom: '10px' }}>🔐</div>
+                    
+                    <h2 style={{ color: '#ffd700', marginBottom: '5px' }}>
+                        OGA'S SECRET VAULT
+                    </h2>
+                    <p style={{ color: '#555', marginBottom: '30px', fontSize: '0.9rem' }}>
+                        Authorised Personnel Only!
+                    </p>
+
+                    <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <input
+                            type="password"
+                            placeholder="Enter Admin Password"
+                            value={passwordInput}
+                            onChange={(e) => setPasswordInput(e.target.value)}
+                            required
+                            style={{
+                                padding: '14px',
+                                borderRadius: '8px',
+                                border: '1px solid #333',
+                                background: '#1a1a1a',
+                                color: '#fff',
+                                fontSize: '1rem',
+                                textAlign: 'center',
+                                letterSpacing: '4px'
+                            }}
+                        />
+
+                        {/* ERROR MESSAGE */}
+                        {passwordError && (
+                            <p style={{ color: '#ff4d4d', fontSize: '0.9rem', margin: 0 }}>
+                                {passwordError}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            style={{
+                                padding: '14px',
+                                background: '#ffd700',
+                                color: '#000',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontSize: '1rem'
+                            }}>
+                            ENTER THE VAULT 🏛️
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // =====================================
+    // ✅ ADMIN DASHBOARD — AFTER PASSWORD!
+    // =====================================
     if (loading) return <h2 style={{textAlign: 'center'}}>Opening the Vault... 🦾</h2>;
 
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
-            <h1 style={{ color: '#333' }}>Oga's Admin Dashboard 💰</h1>
             
+            {/* HEADER WITH LOGOUT */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <h1 style={{ color: '#333', margin: 0 }}>Oga's Admin Dashboard 💰</h1>
+                <button
+                    onClick={handleAdminLogout}
+                    style={{
+                        background: '#ff4d4d',
+                        color: 'white',
+                        padding: '10px 20px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                    }}>
+                    🔒 Lock Vault
+                </button>
+            </div>
+
             {/* --- STUDENT SECTION --- */}
             <div style={{ background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 <h3>Registered Students ({students.length})</h3>
@@ -105,7 +229,6 @@ const Admin = () => {
                                     <td style={{ fontWeight: 'bold', color: s.isPaid ? 'green' : 'red' }}>
                                         {s.isPaid ? "APPROVED ✅" : "PENDING ⏳"}
                                     </td>
-                                    {/* 🆕 SHOW EXPIRY DATE */}
                                     <td style={{ color: '#666', fontSize: '0.9rem' }}>
                                         {s.expiryDate 
                                             ? new Date(s.expiryDate).toLocaleDateString('en-NG', {
@@ -137,7 +260,7 @@ const Admin = () => {
                 </div>
             </div>
 
-            {/* --- 🆕 PAYMENT MODE TOGGLE --- */}
+            {/* --- PAYMENT MODE TOGGLE --- */}
             <div style={{ 
                 marginTop: '30px', 
                 padding: '30px', 
@@ -172,7 +295,7 @@ const Admin = () => {
                 </button>
             </div>
 
-            {/* --- 📤 PUBLISH MENU --- */}
+            {/* --- PUBLISH MENU --- */}
             <div style={{ marginTop: '50px', padding: '30px', border: '2px solid #333', borderRadius: '15px', background: '#f9f9f9' }}>
                 <h2 style={{ color: '#333', margin: '0 0 10px 0' }}>📤 Publish Math Tutorial</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>This sends the video straight to the Student Video Vault.</p>
