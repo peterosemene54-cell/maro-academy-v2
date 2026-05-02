@@ -7,44 +7,30 @@ const Admin = lazy(() => import('./Admin'));
 const Login = lazy(() => import('./Login'));
 const VideoVault = lazy(() => import('./VideoVault'));
 const AccessDenied = lazy(() => import('./AccessDenied'));
-// 🆕 BROWSER WARNING PAGE
 const BrowserWarning = lazy(() => import('./BrowserWarning'));
 
+// 🌐 CONFIG
+const API_URL = "https://maro-academy-v2.onrender.com";
+
 function App() {
-  // 🔐 FIXED: Reads localStorage IMMEDIATELY - no more reload bug!
+  // 🔐 INITIAL STATE
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('maroUser');
     return saved ? JSON.parse(saved) : null;
   });
 
-  // 🆓 FREE MODE SWITCH
   const [paymentRequired, setPaymentRequired] = useState(() => {
     const mode = localStorage.getItem('paymentRequired');
     return mode ? JSON.parse(mode) : false;
   });
-  // ... existing code ...
-  useEffect(() => {
-    fetchPaymentMode();
-  }, []);
 
-  // 👇 PASTE IT HERE (Inside the App function)
-  useEffect(() => {
-    const globalWatcher = setInterval(async () => {
-      if (!user || !user.expiryDate) return;
-      // ... rest of the logic ...
-    }, 1000);
-    return () => clearInterval(globalWatcher);
-  }, [user]);
-
-  // ⏰ CHECK IF SUBSCRIPTION HAS EXPIRED
-  const isSubscriptionExpired = (user) => {
-    // ... rest of the code ...
-
-  // 🌐 FETCH PAYMENT MODE FROM SERVER ON LOAD
+  // ===============================
+  // 🌐 SYNC PAYMENT MODE ON LOAD
+  // ===============================
   useEffect(() => {
     const fetchPaymentMode = async () => {
       try {
-        const res = await fetch("https://maro-academy-v2.onrender.com/api/settings");
+        const res = await fetch(`${API_URL}/api/settings`);
         const data = await res.json();
         setPaymentRequired(data.paymentRequired);
         localStorage.setItem('paymentRequired', JSON.stringify(data.paymentRequired));
@@ -54,7 +40,11 @@ function App() {
     };
     fetchPaymentMode();
   }, []);
-  // 🛡️ GLOBAL EXPIRY GUARD (Kicks out from ANY page!)
+
+  // ===============================
+  // 🛡️ MIGHTY GLOBAL EXPIRY GUARD
+  // Kicks from ANY page & syncs Admin instantly!
+  // ===============================
   useEffect(() => {
     const globalWatcher = setInterval(async () => {
       if (!user || !user.expiryDate) return;
@@ -63,57 +53,55 @@ function App() {
       const expiry = new Date(user.expiryDate);
 
       if (now > expiry) {
-        console.log("🔴 GLOBAL EXPIRY: Access Revoked!");
+        console.log("🔴 GLOBAL EXPIRY: Kicking out now! GBAMA! 💥");
         
         try {
-          // Sync with Admin Dashboard immediately using ID
-          await fetch(`https://onrender.com{user._id}`, {
+          // Sync with Admin Dashboard using individual ID
+          await fetch(`${API_URL}/api/students/auto-expire/${user._id}`, {
             method: 'PUT'
           });
         } catch (e) {
           console.error("Admin sync failed", e);
         }
 
-        // Clear local session and kick
+        // Clear local session and force redirect
         localStorage.removeItem('maroUser');
+        setUser(null);
         window.location.href = '/access-denied?expired=true';
       }
-    }, 1000); 
+    }, 1000); // Super fast 1-second check
 
     return () => clearInterval(globalWatcher);
   }, [user]);
 
-  // ⏰ CHECK IF SUBSCRIPTION HAS EXPIRED
-  const isSubscriptionExpired = (user) => {
-    if (!user || !user.expiryDate) return false;
-    return new Date() > new Date(user.expiryDate);
+  // ===============================
+  // 🛠️ HELPERS
+  // ===============================
+  const isSubscriptionExpired = (userData) => {
+    if (!userData || !userData.expiryDate) return false;
+    return new Date() > new Date(userData.expiryDate);
   };
 
-  // 🔑 Handle Login
   const handleLogin = (userData) => {
     setUser(userData);
     localStorage.setItem('maroUser', JSON.stringify(userData));
   };
 
+  // ===============================
+  // 🏛️ THE MIGHTY ROUTER
+  // ===============================
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
         <Suspense fallback={<div style={{textAlign: 'center', padding: '50px'}}>Loading Maro Academy... 🦾</div>}>
           <Routes>
-            {/* 🏠 Register */}
             <Route path="/" element={<Register />} />
             <Route path="/register" element={<Register />} />
-
-            {/* 🔑 Login */}
             <Route path="/login" element={<Login setUser={handleLogin} />} />
-
-            {/* 🔒 Access Denied */}
             <Route path="/access-denied" element={<AccessDenied />} />
-
-            {/* 🆕 Browser Warning */}
             <Route path="/browser-warning" element={<BrowserWarning />} />
 
-            {/* 🎬 VIDEO VAULT */}
+            {/* 🎬 PROTECTED VIDEO VAULT */}
             <Route
               path="/video-vault"
               element={
@@ -133,17 +121,13 @@ function App() {
               }
             />
 
-            {/* 🔐 Admin */}
             <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
-
-            {/* 🚫 Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>
     </Router>
   );
-}
 }
 
 export default App;
