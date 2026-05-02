@@ -51,16 +51,18 @@ const Admin = () => {
     };
 
     // 🔥 REAL TIME — fetches every 3 seconds!
+        // 🔥 SUPER REAL TIME — fetches every 1 second!
     useEffect(() => {
         if (isAuthenticated) {
             fetchStudents();
             fetchSettings();
             const realTimeRefresh = setInterval(() => {
                 fetchStudents();
-            }, 3 * 1000);
+            }, 1000); // <--- Changed from 3000 to 1000 for instant updates!
             return () => clearInterval(realTimeRefresh);
         }
     }, [isAuthenticated]);
+
 
     const toggleApproval = async (id) => {
         try {

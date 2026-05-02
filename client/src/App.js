@@ -22,6 +22,23 @@ function App() {
     const mode = localStorage.getItem('paymentRequired');
     return mode ? JSON.parse(mode) : false;
   });
+  // ... existing code ...
+  useEffect(() => {
+    fetchPaymentMode();
+  }, []);
+
+  // 👇 PASTE IT HERE (Inside the App function)
+  useEffect(() => {
+    const globalWatcher = setInterval(async () => {
+      if (!user || !user.expiryDate) return;
+      // ... rest of the logic ...
+    }, 1000);
+    return () => clearInterval(globalWatcher);
+  }, [user]);
+
+  // ⏰ CHECK IF SUBSCRIPTION HAS EXPIRED
+  const isSubscriptionExpired = (user) => {
+    // ... rest of the code ...
 
   // 🌐 FETCH PAYMENT MODE FROM SERVER ON LOAD
   useEffect(() => {
@@ -98,6 +115,7 @@ function App() {
       </div>
     </Router>
   );
+}
 }
 
 export default App;

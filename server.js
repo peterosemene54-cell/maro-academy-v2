@@ -253,3 +253,24 @@ app.get('/', (req, res) => res.send("MARO ACADEMY SERVER IS LIVE! 🚀"));
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🦾 Server running on ${PORT}`));
+// ✅ NEW: INDIVIDUAL AUTO-EXPIRE (Fixes the "Waiting" bug)
+app.put('/api/students/auto-expire/:id', async (req, res) => {
+    try {
+        const student = await User.findById(req.params.id);
+        if (!student) return res.status(404).send("Student not found");
+
+        // Clear everything for THIS specific student only
+        student.isPaid = false;
+        student.paymentDate = null;
+        student.expiryDate = null;
+        student.hasLoggedIn = false;
+        student.firstLoginDate = null;
+
+        await student.save();
+        console.log(`✨ Admin Sync: ${student.name} has been auto-disapproved.`);
+        
+        res.json({ message: "Individual status updated on Admin page!" });
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
