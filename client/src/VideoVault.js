@@ -9,12 +9,11 @@ const VideoVault = ({ user }) => {
   const [videoEnded, setVideoEnded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const navigate = useNavigate();
   const playerRef = useRef(null);
   const playerDivId = 'mighty-vault-player';
-  const API_URL = "https://maro-academy-v2.onrender.com";
+  const API_URL = "https://onrender.com";
 
   // ===============================
   // 🌐 BROWSER DETECTION
@@ -33,7 +32,7 @@ const VideoVault = ({ user }) => {
   }, [navigate]);
 
   // ===============================
-  // ⏰ EXPIRY SYSTEM (UNCHANGED LOGIC)
+  // ⏰ MIGHTY EXPIRY WATCHER
   // ===============================
   useEffect(() => {
     const checkExpiry = async () => {
@@ -50,9 +49,14 @@ const VideoVault = ({ user }) => {
       const expiry = new Date(userData.expiryDate);
 
       if (now > expiry) {
+        console.log("🔴 EXPIRED! Kicking you out! GBAMA! 💥");
+
         try {
           await axios.put(`${API_URL}/api/students/auto-expire/${userData._id}`);
-        } catch (e) {}
+          console.log("✅ Your status flipped to PENDING!");
+        } catch (e) {
+          console.error("Could not update individual status", e);
+        }
 
         localStorage.removeItem('maroUser');
         navigate('/access-denied', { state: { expired: true } });
@@ -60,42 +64,57 @@ const VideoVault = ({ user }) => {
     };
 
     checkExpiry();
-    const interval = setInterval(checkExpiry, 1000);
-    return () => clearInterval(interval);
+    const expiryWatcher = setInterval(checkExpiry, 1000);
+    return () => clearInterval(expiryWatcher);
   }, [navigate]);
 
   // ===============================
-  // 📱 RESIZE LISTENER
+  // 🛡️ SECURITY & RESPONSIVENESS
   // ===============================
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', handleResize);
 
-    return () => window.removeEventListener('resize', handleResize);
+    const preventSabotage = (e) => {
+      if (e.type === "contextmenu") e.preventDefault();
+      if (
+        e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
+        (e.ctrlKey && e.keyCode === 85)
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    document.addEventListener("contextmenu", preventSabotage);
+    document.addEventListener("keydown", preventSabotage);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener("contextmenu", preventSabotage);
+      document.removeEventListener("keydown", preventSabotage);
+    };
   }, []);
 
   // ===============================
-  // 📦 LOAD VIDEOS
+  // 🔑 DATA INITIALIZATION
   // ===============================
   const initializeVault = useCallback(async () => {
     if (!user) {
       navigate('/login');
       return;
     }
-
     try {
       const response = await axios.get(`${API_URL}/api/videos`);
       const data = response.data;
-
       setVideos(data);
-
       if (data.length > 0) {
         setActiveVideo(data[0]);
       }
-
-      setTimeout(() => setLoading(false), 1000);
+      setTimeout(() => setLoading(false), 1200);
     } catch (error) {
-      console.error("VAULT ERROR:", error);
+      console.error("🚨 VAULT ERROR:", error);
       setLoading(false);
     }
   }, [user, navigate]);
@@ -105,18 +124,16 @@ const VideoVault = ({ user }) => {
   }, [initializeVault]);
 
   // ===============================
-  // 🎥 YOUTUBE PLAYER ENGINE
+  // 🎥 THE MIGHTY PLAYER ENGINE
   // ===============================
   useEffect(() => {
-    const initPlayer = () => {
+    const tryCreatePlayer = () => {
       const el = document.getElementById(playerDivId);
-
-      if (!el || !window.YT || !window.YT.Player) {
-        setTimeout(initPlayer, 200);
-        return;
-      }
-
+      if (!el) { setTimeout(tryCreatePlayer, 100); return; }
+      if (!window.YT || !window.YT.Player) { setTimeout(tryCreatePlayer, 100); return; }
       if (playerRef.current) return;
+
+      console.log("🏛️ CREATING PLAYER...");
 
       playerRef.current = new window.YT.Player(playerDivId, {
         videoId: '',
@@ -124,13 +141,18 @@ const VideoVault = ({ user }) => {
           autoplay: 0,
           controls: 0,
           modestbranding: 1,
+          showinfo: 0,
           rel: 0,
-          fs: 0,
-          playsinline: 1,
           disablekb: 1,
           iv_load_policy: 3,
+          fs: 0,
+          playsinline: 1,
+          origin: window.location.origin,
         },
         events: {
+          onReady: (e) => {
+            console.log("🏛️ MIGHTY ENGINE READY!");
+          },
           onStateChange: (event) => {
             if (event.data === window.YT.PlayerState.ENDED) {
               setVideoEnded(true);
@@ -143,263 +165,165 @@ const VideoVault = ({ user }) => {
       });
     };
 
-    if (!document.getElementById('yt-api')) {
+    if (!document.getElementById('yt-iframe-api')) {
       const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      tag.id = "yt-api";
+      tag.id = 'yt-iframe-api';
+      tag.src = 'https://youtube.com';
       document.body.appendChild(tag);
     }
 
-    setTimeout(initPlayer, 400);
+    setTimeout(tryCreatePlayer, 300);
 
     return () => {
       if (playerRef.current) {
-        playerRef.current.destroy?.();
+        try { playerRef.current.destroy(); } catch (e) {}
         playerRef.current = null;
       }
     };
   }, []);
 
-  // ===============================
-  // 🎬 LOAD ACTIVE VIDEO
-  // ===============================
   useEffect(() => {
     if (!activeVideo) return;
-
-    const loadVideo = () => {
-      if (!playerRef.current?.cueVideoById) {
-        setTimeout(loadVideo, 200);
-        return;
-      }
-
-      const savedTime = parseFloat(
-        localStorage.getItem(`progress_${activeVideo._id}`) || '0'
-      );
-
-      playerRef.current.cueVideoById({
-        videoId: activeVideo.videoId,
-        startSeconds: Math.floor(savedTime),
-      });
-    };
-
     setVideoEnded(false);
     setIsPlaying(false);
-    setTimeout(loadVideo, 300);
+
+    const savedTime = parseFloat(
+      localStorage.getItem(`progress_${activeVideo._id}`) || '0'
+    );
+
+    const loadVideo = () => {
+      if (!playerRef.current || typeof playerRef.current.cueVideoById !== 'function') {
+        setTimeout(loadVideo, 300);
+        return;
+      }
+      try {
+        playerRef.current.cueVideoById({
+          videoId: activeVideo.videoId,
+          startSeconds: Math.floor(savedTime),
+        });
+      } catch (e) {
+        console.error("Load video error:", e);
+      }
+    };
+
+    setTimeout(loadVideo, 250);
   }, [activeVideo]);
 
-  // ===============================
-  // 💾 SAVE PROGRESS
-  // ===============================
   useEffect(() => {
     const interval = setInterval(() => {
-      if (playerRef.current && activeVideo) {
+      if (playerRef.current && playerRef.current.getCurrentTime && activeVideo) {
         try {
-          const time = playerRef.current.getCurrentTime();
-          if (time > 0) {
-            localStorage.setItem(`progress_${activeVideo._id}`, time);
+          const currentTime = playerRef.current.getCurrentTime();
+          if (currentTime > 0) {
+            localStorage.setItem(`progress_${activeVideo._id}`, currentTime);
           }
-        } catch {}
+        } catch (e) {}
       }
     }, 5000);
-
     return () => clearInterval(interval);
   }, [activeVideo]);
 
   // ===============================
-  // ▶ PLAY / PAUSE
+  // 🛠️ MIGHTY HANDLERS
   // ===============================
   const togglePlayback = () => {
     if (!playerRef.current) return;
-
+    if (typeof playerRef.current.getPlayerState !== 'function') return;
     const state = playerRef.current.getPlayerState();
-
     if (state === window.YT.PlayerState.PLAYING) {
       playerRef.current.pauseVideo();
     } else {
       playerRef.current.playVideo();
-      handleFullscreen();
     }
   };
 
-  // ===============================
-  // ⏭ SKIP
-  // ===============================
-  const handleSkip = (sec) => {
-    if (!playerRef.current) return;
-
-    const current = playerRef.current.getCurrentTime();
-    playerRef.current.seekTo(current + sec, true);
+  const handleSkip = (delta) => {
+    if (!playerRef.current || videoEnded) return;
+    try {
+      const current = playerRef.current.getCurrentTime();
+      playerRef.current.seekTo(current + delta, true);
+      playerRef.current.playVideo();
+    } catch (e) {}
   };
 
-  // ===============================
-  // 📺 FULLSCREEN (FIXED PROPERLY)
-  // ===============================
-  const handleFullscreen = () => {
+  const handleSelectVideo = (video) => {
+    if (activeVideo?._id === video._id) return;
+    setVideoEnded(false);
+    setActiveVideo(video);
+  };
+
+  // 🆕 THE FULLSCREEN FLIP HANDLER
+  const handleFullscreen = async () => {
     const wrapper = document.getElementById('player-wrapper');
     if (!wrapper) return;
 
-    const request =
-      wrapper.requestFullscreen ||
-      wrapper.webkitRequestFullscreen ||
-      wrapper.msRequestFullscreen;
-
-    request?.call(wrapper);
-
-    setIsFullscreen(true);
-
-    document.onfullscreenchange = () => {
-      if (!document.fullscreenElement) {
-        setIsFullscreen(false);
-      }
-    };
-
     try {
-      window.screen.orientation?.lock?.('landscape').catch(() => {});
-    } catch {}
+      // Step 1: Request Fullscreen for all engines
+      if (wrapper.requestFullscreen) {
+        await wrapper.requestFullscreen();
+      } else if (wrapper.webkitRequestFullscreen) {
+        await wrapper.webkitRequestFullscreen();
+      } else if (wrapper.mozRequestFullScreen) {
+        await wrapper.mozRequestFullScreen();
+      } else if (wrapper.msRequestFullscreen) {
+        await wrapper.msRequestFullscreen();
+      }
+
+      // Step 2: Lock to Horizontal (Landscape)
+      if (window.screen.orientation && window.screen.orientation.lock) {
+        await window.screen.orientation.lock('landscape').catch((err) => {
+          console.log("Orientation lock ignored by browser:", err.message);
+        });
+      }
+    } catch (error) {
+      console.error("Mighty Fullscreen error:", error);
+    }
   };
 
-  // ===============================
-  // LOADING UI
-  // ===============================
-  if (loading) {
-    return (
-      <div style={styles.loading}>
-        <div style={styles.spinner}></div>
-        <h2 style={{ color: '#ffd700' }}>UNLOCKING VAULT...</h2>
-      </div>
-    );
-  }
+  // Reset orientation when exiting
+  useEffect(() => {
+    const handleExit = () => {
+      if (!document.fullscreenElement && window.screen.orientation?.unlock) {
+        window.screen.orientation.unlock();
+      }
+    };
+    document.addEventListener('fullscreenchange', handleExit);
+    document.addEventListener('webkitfullscreenchange', handleExit);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleExit);
+      document.removeEventListener('webkitfullscreenchange', handleExit);
+    };
+  }, []);
+
+  if (loading) return <div>Vault Initializing...</div>;
 
   return (
-    <div style={styles.container}>
-
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1>MARO ACADEMY PRO</h1>
-        <button onClick={() => navigate('/login')}>Logout</button>
+    <div className="vault-main-container">
+      <div id="player-wrapper" className="player-container">
+        <div id={playerDivId}></div>
+        
+        {/* BUTTON INTERFACE */}
+        <div className="custom-player-controls">
+          <button onClick={togglePlayback}>{isPlaying ? 'Pause' : 'Play'}</button>
+          <button onClick={() => handleSkip(-10)}>-10s</button>
+          <button onClick={() => handleSkip(10)}>+10s</button>
+          <button onClick={handleFullscreen} className="mighty-flip-button">⛶ FLIP TO LANDSCAPE</button>
+        </div>
       </div>
 
-      <div style={{ ...styles.layout, flexDirection: isMobile ? 'column' : 'row' }}>
-
-        {/* PLAYER SECTION */}
-        <div style={styles.playerSection}>
-
-          <div
-            id="player-wrapper"
-            style={{
-              ...styles.playerWrapper,
-              ...(isFullscreen ? styles.fullscreen : {})
-            }}
+      <div className="vault-sidebar">
+        {videos.map((vid) => (
+          <div 
+            key={vid._id} 
+            className={`video-item ${activeVideo?._id === vid._id ? 'active' : ''}`}
+            onClick={() => handleSelectVideo(vid)}
           >
-            <div id={playerDivId} style={styles.player} />
+            {vid.title}
           </div>
-
-          {/* CONTROLS */}
-          <div style={styles.controls}>
-            <button onClick={() => handleSkip(-10)}>⏪</button>
-            <button onClick={togglePlayback}>
-              {isPlaying ? 'Pause' : 'Play'}
-            </button>
-            <button onClick={() => handleSkip(10)}>⏩</button>
-
-            {isMobile && (
-              <button onClick={handleFullscreen}>Fullscreen</button>
-            )}
-          </div>
-
-        </div>
-
-        {/* SIDEBAR */}
-        <div style={styles.sidebar}>
-          {videos.map(v => (
-            <div key={v._id} onClick={() => setActiveVideo(v)}>
-              {v.title}
-            </div>
-          ))}
-        </div>
-
+        ))}
       </div>
     </div>
   );
-};
-
-// ===============================
-// 🎨 STYLES (UNCHANGED STRUCTURE FIXED)
-// ===============================
-const styles = {
-  container: { background: '#000', color: '#fff', minHeight: '100vh' },
-
-  header: {
-    padding: 20,
-    display: 'flex',
-    justifyContent: 'space-between',
-    borderBottom: '1px solid #222'
-  },
-
-  layout: {
-    display: 'flex',
-    gap: 20,
-    padding: 20
-  },
-
-  playerSection: { flex: 1 },
-
-  playerWrapper: {
-    width: '100%',
-    aspectRatio: '16 / 9',
-    position: 'relative',
-    background: '#000',
-    borderRadius: 20,
-    overflow: 'hidden'
-  },
-
-  fullscreen: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    zIndex: 99999,
-    borderRadius: 0
-  },
-
-  player: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    top: 0,
-    left: 0
-  },
-
-  controls: {
-    display: 'flex',
-    gap: 10,
-    marginTop: 15
-  },
-
-  sidebar: {
-    width: 280,
-    background: '#111',
-    padding: 15,
-    borderRadius: 10
-  },
-
-  loading: {
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-
-  spinner: {
-    width: 40,
-    height: 40,
-    border: '3px solid #333',
-    borderTop: '3px solid #ffd700',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite'
-  }
 };
 
 export default VideoVault;
