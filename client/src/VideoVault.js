@@ -262,29 +262,18 @@ const handleFullscreen = () => {
   const wrapper = document.getElementById('player-wrapper');
   if (!wrapper) return;
 
-  // Standard fullscreen
-  if (wrapper.requestFullscreen) {
-    wrapper.requestFullscreen();
-  } else if (wrapper.webkitRequestFullscreen) {
-    wrapper.webkitRequestFullscreen();
-  } else if (wrapper.msRequestFullscreen) {
-    wrapper.msRequestFullscreen();
-  }
+  const request =
+    wrapper.requestFullscreen ||
+    wrapper.webkitRequestFullscreen ||
+    wrapper.msRequestFullscreen;
 
-  // Force landscape on mobile
-  if (screen.orientation?.lock) {
-    screen.orientation.lock('landscape').catch(() => {});
-  }
+  if (request) request.call(wrapper);
 
-  // Try iframe fullscreen too
-  if (playerRef.current?.getIframe) {
-    const iframe = playerRef.current.getIframe();
-    if (iframe.requestFullscreen) {
-      iframe.requestFullscreen();
-    } else if (iframe.webkitRequestFullscreen) {
-      iframe.webkitRequestFullscreen();
+  try {
+    if (window.screen?.orientation?.lock) {
+      window.screen.orientation.lock('landscape').catch(() => {});
     }
-  }
+  } catch (e) {}
 };
 
   if (loading) return (
