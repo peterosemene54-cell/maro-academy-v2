@@ -268,12 +268,9 @@ const VideoVault = ({ user }) => {
     } else if (wrapper.msRequestFullscreen) {
       wrapper.msRequestFullscreen();
     }
-    // Also try to lock screen to landscape on mobile!
-    // DELETE THESE 3 LINES:
-// SAFE VERSION:
-if (window.screen.orientation && window.screen.orientation.lock) {
-  window.screen.orientation.lock('landscape').catch(() => {});
-}
+    if (window.screen.orientation && window.screen.orientation.lock) {
+      window.screen.orientation.lock('landscape').catch(() => {});
+    }
   };
 
   if (loading) return (
@@ -303,7 +300,6 @@ if (window.screen.orientation && window.screen.orientation.lock) {
         <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 5 }}>
           {activeVideo && (
             <>
-              {/* 🆕 id added for fullscreen */}
               <div id="player-wrapper" style={styles.playerWrapper}>
                 <div id={playerDivId} style={styles.playerDiv} />
                 <div style={styles.mightyShield} />
@@ -313,7 +309,7 @@ if (window.screen.orientation && window.screen.orientation.lock) {
                 <div style={styles.bottomLeftBlocker} />
                 <div style={styles.centerTopBlocker} />
 
-                {/* 🆕 FULLSCREEN BUTTON — shows on mobile inside player! */}
+                {/* 🆕 FULLSCREEN BUTTON INSIDE PLAYER */}
                 {isMobile && (
                   <button
                     onClick={handleFullscreen}
@@ -342,7 +338,7 @@ if (window.screen.orientation && window.screen.orientation.lock) {
                 )}
               </div>
 
-              {/* 🆕 CONTROLS — Fixed for mobile! */}
+              {/* CONTROLS */}
               <div style={{
                 ...styles.controls,
                 gap: isMobile ? '8px' : '20px',
@@ -359,7 +355,6 @@ if (window.screen.orientation && window.screen.orientation.lock) {
                   ⏪ 10s
                 </button>
 
-                {/* 🆕 PLAY/PAUSE — shorter text on mobile so it fits! */}
                 <button
                   style={{
                     ...styles.playBtn,
@@ -369,7 +364,7 @@ if (window.screen.orientation && window.screen.orientation.lock) {
                   }}
                   onClick={togglePlayback}>
                   {isPlaying
-                    ? (isMobile ? '⏸ PAUSE' : '⏸ PAUSE')
+                    ? '⏸ PAUSE'
                     : (isMobile ? '▶ PLAY' : '▶ PLAY LESSON')
                   }
                 </button>
@@ -384,7 +379,7 @@ if (window.screen.orientation && window.screen.orientation.lock) {
                   10s ⏩
                 </button>
 
-                {/* 🆕 FULLSCREEN BUTTON BELOW CONTROLS ON MOBILE */}
+                {/* FULLSCREEN BUTTON IN CONTROLS — Mobile only */}
                 {isMobile && (
                   <button
                     onClick={handleFullscreen}
@@ -461,16 +456,19 @@ const styles = {
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' },
   layout: { display: 'flex', gap: '20px', maxWidth: '100%', margin: '0 auto', padding: '0 20px' },
   playerSection: { minWidth: 0 },
+
+  // 🆕 overflow changed to visible so fullscreen button shows!
   playerWrapper: {
     position: 'relative',
     width: '100%',
     paddingBottom: '62%',
     background: '#000',
     borderRadius: '24px',
-    overflow: 'hidden',
+    overflow: 'visible',  // ← CHANGED FROM hidden TO visible!
     boxShadow: '0 30px 60px rgba(0,0,0,0.7)',
     border: '1px solid #111',
   },
+
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
   topRightBlocker: { display: 'none' },
@@ -478,22 +476,21 @@ const styles = {
   topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.85)', zIndex: 11 },
   centerTopBlocker: { display: 'none' },
 
-  // 🆕 FULLSCREEN BUTTON INSIDE PLAYER (bottom right corner)
+  // 🆕 zIndex 999 — nothing can hide this button!
   fullscreenInsideBtn: {
     position: 'absolute',
-    bottom: '70px',  // above bottom blocker
+    bottom: '70px',
     right: '10px',
-    zIndex: 20,
-    background: 'rgba(0,0,0,0.7)',
+    zIndex: 999,
+    background: 'rgba(0,0,0,0.8)',
     color: '#ffd700',
     border: '1px solid #ffd700',
     borderRadius: '8px',
-    padding: '6px 10px',
-    fontSize: '1.2rem',
+    padding: '8px 12px',
+    fontSize: '1.3rem',
     cursor: 'pointer',
   },
 
-  // 🆕 FULLSCREEN BUTTON IN CONTROLS ROW
   fullscreenControlBtn: {
     background: '#111',
     border: '1px solid #ffd700',
