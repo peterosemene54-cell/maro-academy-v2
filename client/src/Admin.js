@@ -2,25 +2,18 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API_URL = "https://maro-academy-v2.onrender.com";
-
-// 🔐 YOUR SECRET ADMIN PASSWORD — CHANGE THIS!
 const ADMIN_PASSWORD = "MaroAdmin2026";
 
 const Admin = () => {
-    // 🔐 FIX 1 — ALWAYS FALSE!
-    // No sessionStorage, no localStorage!
-    // Dies the moment you leave — password ALWAYS required on return!
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
-
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [videoData, setVideoData] = useState({ title: '', videoId: '', description: '' });
     const [uploading, setUploading] = useState(false);
     const [paymentRequired, setPaymentRequired] = useState(false);
 
-    // 🔐 ADMIN LOGIN — NO sessionStorage AT ALL!
     const handleAdminLogin = (e) => {
         e.preventDefault();
         if (passwordInput === ADMIN_PASSWORD) {
@@ -32,13 +25,11 @@ const Admin = () => {
         }
     };
 
-    // 🔐 ADMIN LOGOUT
     const handleAdminLogout = () => {
         setIsAuthenticated(false);
         setPasswordInput('');
     };
 
-    // 📥 FETCH ALL STUDENTS
     const fetchStudents = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/students`);
@@ -50,7 +41,6 @@ const Admin = () => {
         }
     };
 
-    // ⚙️ FETCH SETTINGS
     const fetchSettings = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/settings`);
@@ -60,41 +50,34 @@ const Admin = () => {
         }
     };
 
-    // 🔥 REAL TIME — Fetches every 3 seconds automatically!
-    // Admin table updates instantly when anything changes!
+    // 🔥 REAL TIME — fetches every 3 seconds!
     useEffect(() => {
         if (isAuthenticated) {
-            // Fetch immediately on login
             fetchStudents();
             fetchSettings();
-
-            // Then keep fetching every 3 seconds — basically real time!
             const realTimeRefresh = setInterval(() => {
                 fetchStudents();
             }, 3 * 1000);
-
             return () => clearInterval(realTimeRefresh);
         }
     }, [isAuthenticated]);
 
-    // ✅ APPROVE/DISAPPROVE
     const toggleApproval = async (id) => {
         try {
             await axios.put(`${API_URL}/api/students/${id}/approve`);
-            fetchStudents(); // Refresh immediately after action!
+            fetchStudents();
         } catch (error) {
             alert("Error updating status");
         }
     };
 
-    // 💰 TOGGLE PAYMENT MODE
     const togglePaymentMode = async () => {
         try {
             const res = await axios.put(`${API_URL}/api/settings`, {
                 paymentRequired: !paymentRequired
             });
             setPaymentRequired(res.data.paymentRequired);
-            fetchStudents(); // Refresh table immediately after switch!
+            fetchStudents();
             alert(`Payment mode is now ${res.data.paymentRequired
                 ? 'ON 🔴 - Students must pay!'
                 : 'OFF 🟢 - Everyone watches free!'
@@ -104,7 +87,6 @@ const Admin = () => {
         }
     };
 
-    // 📤 PUBLISH VIDEO
     const handleVideoUpload = async (e) => {
         e.preventDefault();
         setUploading(true);
@@ -119,38 +101,13 @@ const Admin = () => {
         }
     };
 
-    // =====================================
-    // 🔐 GATE — ALWAYS ASKS PASSWORD!
-    // Ctrl+Shift+R, tab switch, URL = password!
-    // =====================================
     if (!isAuthenticated) {
         return (
-            <div style={{
-                minHeight: '100vh',
-                background: '#0a0a0a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: 'Arial, sans-serif'
-            }}>
-                <div style={{
-                    background: '#111',
-                    padding: '50px 40px',
-                    borderRadius: '20px',
-                    border: '1px solid #222',
-                    maxWidth: '400px',
-                    width: '100%',
-                    textAlign: 'center',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
-                }}>
+            <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
+                <div style={{ background: '#111', padding: '50px 40px', borderRadius: '20px', border: '1px solid #222', maxWidth: '400px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                     <div style={{ fontSize: '4rem', marginBottom: '10px' }}>🔐</div>
-                    <h2 style={{ color: '#ffd700', marginBottom: '5px' }}>
-                        OGA'S SECRET VAULT
-                    </h2>
-                    <p style={{ color: '#555', marginBottom: '30px', fontSize: '0.9rem' }}>
-                        Authorised Personnel Only!
-                    </p>
-
+                    <h2 style={{ color: '#ffd700', marginBottom: '5px' }}>OGA'S SECRET VAULT</h2>
+                    <p style={{ color: '#555', marginBottom: '30px', fontSize: '0.9rem' }}>Authorised Personnel Only!</p>
                     <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         <input
                             type="password"
@@ -158,34 +115,10 @@ const Admin = () => {
                             value={passwordInput}
                             onChange={(e) => setPasswordInput(e.target.value)}
                             required
-                            style={{
-                                padding: '14px',
-                                borderRadius: '8px',
-                                border: '1px solid #333',
-                                background: '#1a1a1a',
-                                color: '#fff',
-                                fontSize: '1rem',
-                                textAlign: 'center',
-                                letterSpacing: '4px'
-                            }}
+                            style={{ padding: '14px', borderRadius: '8px', border: '1px solid #333', background: '#1a1a1a', color: '#fff', fontSize: '1rem', textAlign: 'center', letterSpacing: '4px' }}
                         />
-                        {passwordError && (
-                            <p style={{ color: '#ff4d4d', fontSize: '0.9rem', margin: 0 }}>
-                                {passwordError}
-                            </p>
-                        )}
-                        <button
-                            type="submit"
-                            style={{
-                                padding: '14px',
-                                background: '#ffd700',
-                                color: '#000',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                fontSize: '1rem'
-                            }}>
+                        {passwordError && <p style={{ color: '#ff4d4d', fontSize: '0.9rem', margin: 0 }}>{passwordError}</p>}
+                        <button type="submit" style={{ padding: '14px', background: '#ffd700', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
                             ENTER THE VAULT 🏛️
                         </button>
                     </form>
@@ -199,41 +132,19 @@ const Admin = () => {
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '1200px', margin: '0 auto' }}>
 
-            {/* HEADER WITH LOGOUT + LIVE INDICATOR */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <h1 style={{ color: '#333', margin: 0 }}>Oga's Admin Dashboard 💰</h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    {/* REAL TIME INDICATOR */}
-                    <span style={{
-                        color: 'green',
-                        fontSize: '0.85rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        background: '#eaffea',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        border: '1px solid #28a745'
-                    }}>
+                    <span style={{ color: 'green', fontSize: '0.85rem', background: '#eaffea', padding: '6px 12px', borderRadius: '20px', border: '1px solid #28a745' }}>
                         🟢 Live Updates
                     </span>
-                    <button
-                        onClick={handleAdminLogout}
-                        style={{
-                            background: '#ff4d4d',
-                            color: 'white',
-                            padding: '10px 20px',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                        }}>
+                    <button onClick={handleAdminLogout} style={{ background: '#ff4d4d', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                         🔒 Lock Vault
                     </button>
                 </div>
             </div>
 
-            {/* --- STUDENT SECTION --- */}
+            {/* STUDENT TABLE */}
             <div style={{ background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 <h3>Registered Students ({students.length})</h3>
                 <div style={{ overflowX: 'auto' }}>
@@ -243,7 +154,7 @@ const Admin = () => {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Status</th>
-                                {/* FIX 2 & 3 — columns based on mode! */}
+                                {paymentRequired && <th>First Login</th>}
                                 {paymentRequired && <th>Expiry Date</th>}
                                 {paymentRequired && <th>Action</th>}
                                 {!paymentRequired && <th>Access</th>}
@@ -251,64 +162,53 @@ const Admin = () => {
                         </thead>
                         <tbody>
                             {students.map((s) => (
-                                <tr key={s._id} style={{
-                                    background: paymentRequired
-                                        ? (s.isPaid ? '#eaffea' : '#fff')
-                                        : '#eaffea' // Everyone green in free mode!
-                                }}>
+                                <tr key={s._id} style={{ background: paymentRequired ? (s.isPaid ? '#eaffea' : '#fff') : '#eaffea' }}>
                                     <td>{s.name}</td>
                                     <td>{s.email}</td>
-                                    <td style={{
-                                        fontWeight: 'bold',
-                                        color: paymentRequired
-                                            ? (s.isPaid ? 'green' : 'red')
-                                            : 'green'
-                                    }}>
-                                        {paymentRequired
-                                            ? (s.isPaid ? "APPROVED ✅" : "PENDING ⏳")
-                                            : "FREE ACCESS 🟢"
-                                        }
+                                    <td style={{ fontWeight: 'bold', color: paymentRequired ? (s.isPaid ? 'green' : 'red') : 'green' }}>
+                                        {paymentRequired ? (s.isPaid ? "APPROVED ✅" : "PENDING ⏳") : "FREE ACCESS 🟢"}
                                     </td>
 
-                                    {/* Expiry date — ONLY in payment mode */}
+                                    {/* 🆕 FIRST LOGIN COLUMN */}
                                     {paymentRequired && (
-                                        <td style={{ color: '#666', fontSize: '0.9rem' }}>
-                                            {s.expiryDate
-                                                ? new Date(s.expiryDate).toLocaleString('en-NG', {
-                                                    day: 'numeric',
-                                                    month: 'short',
-                                                    year: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
+                                        <td style={{ color: '#666', fontSize: '0.85rem' }}>
+                                            {s.hasLoggedIn && s.firstLoginDate
+                                                ? new Date(s.firstLoginDate).toLocaleString('en-NG', {
+                                                    day: 'numeric', month: 'short',
+                                                    year: 'numeric', hour: '2-digit', minute: '2-digit'
                                                 })
-                                                : 'Not set'
+                                                : <span style={{ color: '#ff9800', fontWeight: 'bold' }}>⏳ Not logged in yet</span>
                                             }
                                         </td>
                                     )}
 
-                                    {/* Approve/Disapprove — ONLY in payment mode */}
+                                    {/* EXPIRY DATE */}
+                                    {paymentRequired && (
+                                        <td style={{ color: '#666', fontSize: '0.85rem' }}>
+                                            {s.expiryDate
+                                                ? new Date(s.expiryDate).toLocaleString('en-NG', {
+                                                    day: 'numeric', month: 'short',
+                                                    year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                })
+                                                : <span style={{ color: '#999' }}>⏳ Starts on first login</span>
+                                            }
+                                        </td>
+                                    )}
+
+                                    {/* APPROVE/DISAPPROVE */}
                                     {paymentRequired && (
                                         <td>
                                             <button
                                                 onClick={() => toggleApproval(s._id)}
-                                                style={{
-                                                    padding: '8px 12px',
-                                                    cursor: 'pointer',
-                                                    background: s.isPaid ? '#ff4d4d' : '#28a745',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '4px'
-                                                }}>
+                                                style={{ padding: '8px 12px', cursor: 'pointer', background: s.isPaid ? '#ff4d4d' : '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}>
                                                 {s.isPaid ? "Disapprove" : "Approve Student"}
                                             </button>
                                         </td>
                                     )}
 
-                                    {/* Free mode — Watching Free */}
+                                    {/* FREE MODE */}
                                     {!paymentRequired && (
-                                        <td style={{ color: 'green', fontWeight: 'bold' }}>
-                                            🟢 Watching Free
-                                        </td>
+                                        <td style={{ color: 'green', fontWeight: 'bold' }}>🟢 Watching Free</td>
                                     )}
                                 </tr>
                             ))}
@@ -317,85 +217,28 @@ const Admin = () => {
                 </div>
             </div>
 
-            {/* --- PAYMENT MODE TOGGLE --- */}
-            <div style={{
-                marginTop: '30px',
-                padding: '30px',
-                border: `2px solid ${paymentRequired ? '#ff4d4d' : '#28a745'}`,
-                borderRadius: '15px',
-                background: '#f9f9f9'
-            }}>
-                <h2 style={{ color: '#333', margin: '0 0 10px 0' }}>
-                    💰 Payment Mode Control
-                </h2>
+            {/* PAYMENT MODE TOGGLE */}
+            <div style={{ marginTop: '30px', padding: '30px', border: `2px solid ${paymentRequired ? '#ff4d4d' : '#28a745'}`, borderRadius: '15px', background: '#f9f9f9' }}>
+                <h2 style={{ color: '#333', margin: '0 0 10px 0' }}>💰 Payment Mode Control</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>
                     Current Status: <b style={{ color: paymentRequired ? 'red' : 'green' }}>
-                        {paymentRequired
-                            ? '🔴 PAYMENT REQUIRED — Students must pay to watch'
-                            : '🟢 FREE ACCESS — Everyone watches for free'
-                        }
+                        {paymentRequired ? '🔴 PAYMENT REQUIRED' : '🟢 FREE ACCESS — Everyone watches for free'}
                     </b>
                 </p>
-                <button
-                    onClick={togglePaymentMode}
-                    style={{
-                        background: paymentRequired ? '#28a745' : '#ff4d4d',
-                        color: 'white',
-                        padding: '15px 30px',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        fontSize: '1rem'
-                    }}>
-                    {paymentRequired
-                        ? '🟢 SWITCH TO FREE MODE'
-                        : '🔴 SWITCH TO PAYMENT MODE'
-                    }
+                <button onClick={togglePaymentMode} style={{ background: paymentRequired ? '#28a745' : '#ff4d4d', color: 'white', padding: '15px 30px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
+                    {paymentRequired ? '🟢 SWITCH TO FREE MODE' : '🔴 SWITCH TO PAYMENT MODE'}
                 </button>
             </div>
 
-            {/* --- PUBLISH MENU --- */}
+            {/* PUBLISH MENU */}
             <div style={{ marginTop: '50px', padding: '30px', border: '2px solid #333', borderRadius: '15px', background: '#f9f9f9' }}>
                 <h2 style={{ color: '#333', margin: '0 0 10px 0' }}>📤 Publish Math Tutorial</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>This sends the video straight to the Student Video Vault.</p>
-
                 <form onSubmit={handleVideoUpload} style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '600px' }}>
-                    <input
-                        type="text"
-                        placeholder="Video Title (e.g. Simultaneous Equations Part 1)"
-                        value={videoData.title}
-                        style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
-                        onChange={(e) => setVideoData({ ...videoData, title: e.target.value })}
-                        required
-                    />
-                    <input
-                        type="text"
-                        placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)"
-                        value={videoData.videoId}
-                        style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
-                        onChange={(e) => setVideoData({ ...videoData, videoId: e.target.value })}
-                        required
-                    />
-                    <textarea
-                        placeholder="Describe what they will learn in this math lesson..."
-                        value={videoData.description}
-                        style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc', minHeight: '100px' }}
-                        onChange={(e) => setVideoData({ ...videoData, description: e.target.value })}
-                    />
-                    <button
-                        type="submit"
-                        disabled={uploading}
-                        style={{
-                            background: uploading ? '#888' : '#333',
-                            color: '#fff',
-                            padding: '15px',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            fontSize: '1rem'
-                        }}>
+                    <input type="text" placeholder="Video Title (e.g. Simultaneous Equations Part 1)" value={videoData.title} style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }} onChange={(e) => setVideoData({ ...videoData, title: e.target.value })} required />
+                    <input type="text" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)" value={videoData.videoId} style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }} onChange={(e) => setVideoData({ ...videoData, videoId: e.target.value })} required />
+                    <textarea placeholder="Describe what they will learn in this math lesson..." value={videoData.description} style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ccc', minHeight: '100px' }} onChange={(e) => setVideoData({ ...videoData, description: e.target.value })} />
+                    <button type="submit" disabled={uploading} style={{ background: uploading ? '#888' : '#333', color: '#fff', padding: '15px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
                         {uploading ? "Publishing... 🦾" : "PUBLISH TO VIDEO VAULT 🚀"}
                     </button>
                 </form>

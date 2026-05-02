@@ -16,34 +16,44 @@ const VideoVault = ({ user }) => {
   const API_URL = "https://maro-academy-v2.onrender.com";
 
   // ===============================
+  // 🌐 BROWSER DETECTION — Problem 2 Fix!
+  // ===============================
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const isChrome = /Chrome/.test(ua) && /Google Inc/.test(navigator.vendor);
+    const isOpera = /OPR/.test(ua) || /Opera/.test(ua);
+    const isUC = /UCBrowser/.test(ua);
+    const isSamsung = /SamsungBrowser/.test(ua);
+    const isEdge = /Edg/.test(ua);
+
+    // If NOT proper Chrome — send to warning page!
+    if (!isChrome || isOpera || isUC || isSamsung) {
+      navigate('/browser-warning');
+      return;
+    }
+  }, [navigate]);
+
+  // ===============================
   // ⏰ MIGHTY EXPIRY WATCHER
   // Checks every 5 seconds — kicks instantly!
   // ===============================
   useEffect(() => {
     const checkExpiry = async () => {
-      // Step 1 — Get saved user from localStorage
       const savedUser = localStorage.getItem('maroUser');
-
-      // No user found — send to login!
       if (!savedUser) {
         navigate('/login');
         return;
       }
 
       const userData = JSON.parse(savedUser);
-
-      // Step 2 — If no expiryDate, they are on free mode — let them watch!
       if (!userData.expiryDate) return;
 
-      // Step 3 — Compare right now vs expiry date
       const now = new Date();
       const expiry = new Date(userData.expiryDate);
 
-      // Step 4 — If expired, kick them out!
       if (now > expiry) {
         console.log("🔴 EXPIRED! Kicking out NOW! GBAMA! 💥");
 
-        // Step 5 — Tell server to flip student to PENDING in admin table!
         try {
           await axios.put(`${API_URL}/api/students/auto-expire`);
           console.log("✅ Admin table flipped to PENDING!");
@@ -51,21 +61,13 @@ const VideoVault = ({ user }) => {
           console.error("Could not update admin", e);
         }
 
-        // Step 6 — Clear their localStorage
         localStorage.removeItem('maroUser');
-
-        // Step 7 — KICK TO RENEWAL PAGE! 💥
         navigate('/access-denied', { state: { expired: true } });
       }
     };
 
-    // ⚡ Check IMMEDIATELY when page loads or refreshes
     checkExpiry();
-
-    // ⚡ Then check every 5 seconds — basically instant kick!
     const expiryWatcher = setInterval(checkExpiry, 5 * 1000);
-
-    // Clean up when they leave
     return () => clearInterval(expiryWatcher);
 
   }, [navigate]);
@@ -184,7 +186,7 @@ const VideoVault = ({ user }) => {
     };
   }, []);
 
-  // Step 2 — Load video when activeVideo changes
+  // Load video when activeVideo changes
   useEffect(() => {
     if (!activeVideo) return;
 
@@ -333,7 +335,12 @@ const VideoVault = ({ user }) => {
         </div>
 
         {/* RIGHT — SIDEBAR CURRICULUM */}
-        <div style={{ ...styles.sidebar, width: isMobile ? '100%' : '300px' }}>
+        <div style={{
+          ...styles.sidebar,
+          width: isMobile ? '100%' : '300px',
+          maxHeight: isMobile ? 'none' : '85vh',
+          marginTop: isMobile ? '20px' : '0'
+        }}>
           <div style={styles.sidebarHeader}>
             <h3 style={styles.sidebarTitle}>COURSE CURRICULUM</h3>
             <span style={styles.videoCount}>{videos.length} LESSONS</span>
@@ -371,7 +378,7 @@ const VideoVault = ({ user }) => {
 };
 
 // ===============================
-// 🎨 MIGHTY STYLES
+// 🎨 MIGHTY STYLES — Problem 1 Fix: BIGGER VIDEO!
 // ===============================
 const styles = {
   container: { minHeight: '100vh', background: '#050505', color: '#fff', paddingBottom: '50px' },
@@ -382,12 +389,14 @@ const styles = {
   userMeta: { display: 'flex', alignItems: 'center', gap: '20px' },
   userName: { color: '#888', fontWeight: '500' },
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' },
-  layout: { display: 'flex', gap: '30px', maxWidth: '100%', margin: '0 auto', padding: '0 40px' },
+  // 🆕 FIX — Less padding = more space for video!
+  layout: { display: 'flex', gap: '20px', maxWidth: '100%', margin: '0 auto', padding: '0 20px' },
   playerSection: { minWidth: 0 },
+  // 🆕 FIX — Bigger video! paddingBottom increased from 58% to 62%
   playerWrapper: {
     position: 'relative',
     width: '100%',
-    paddingBottom: '58%',
+    paddingBottom: '62%',
     background: '#000',
     borderRadius: '24px',
     overflow: 'hidden',
@@ -413,7 +422,7 @@ const styles = {
   videoTitle: { fontSize: '1.8rem', color: '#fff', margin: '0 0 10px' },
   divider: { height: '3px', width: '40px', background: '#ffd700', marginBottom: '20px' },
   videoDesc: { color: '#888', lineHeight: '1.8' },
-  sidebar: { background: '#0a0a0a', borderRadius: '20px', padding: '24px', border: '1px solid #111', maxHeight: '85vh', overflowY: 'auto' },
+  sidebar: { background: '#0a0a0a', borderRadius: '20px', padding: '24px', border: '1px solid #111', overflowY: 'auto' },
   sidebarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #1a1a1a', paddingBottom: '15px' },
   sidebarTitle: { color: '#ffd700', fontSize: '0.8rem', letterSpacing: '2px', fontWeight: 'bold' },
   videoCount: { color: '#444', fontSize: '0.7rem' },

@@ -17,7 +17,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// 🔐 THE MIGHTY DATABASE CONNECTION
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('🚀 MONGODB CONNECTED SUCCESSFULLY!'))
   .catch(err => console.log('❌ DATABASE ERROR:', err));
@@ -25,19 +24,19 @@ mongoose.connect(process.env.MONGO_URI)
 // =====================================
 // 📝 ALL SCHEMAS
 // =====================================
-
-// 1. USER SCHEMA
 const UserSchema = new mongoose.Schema({
     name: String,
     email: String,
     password: { type: String, required: true },
     isPaid: { type: Boolean, default: false },
     paymentDate: { type: Date, default: null },
-    expiryDate: { type: Date, default: null }
+    expiryDate: { type: Date, default: null },
+    // 🆕 TRACKS IF STUDENT HAS LOGGED IN!
+    firstLoginDate: { type: Date, default: null },
+    hasLoggedIn: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', UserSchema);
 
-// 2. VIDEO SCHEMA
 const VideoSchema = new mongoose.Schema({
     title: String,
     videoId: String,
@@ -46,7 +45,6 @@ const VideoSchema = new mongoose.Schema({
 });
 const Video = mongoose.model('Video', VideoSchema);
 
-// 3. SETTINGS SCHEMA
 const SettingSchema = new mongoose.Schema({
     paymentRequired: { type: Boolean, default: false }
 });
@@ -56,7 +54,7 @@ const Setting = mongoose.model('Setting', SettingSchema);
 // 🚪 ALL ROUTES
 // =====================================
 
-// REGISTER ROUTE
+// REGISTER
 app.post('/api/register', async (req, res) => {
     try {
         const newUser = new User(req.body);
@@ -67,38 +65,35 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// 🔑 LOGIN ROUTE — WITH AUTO EXPIRY CHECK!
+// 🔑 LOGIN — TIMER STARTS HERE ON FIRST LOGIN!
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
 
-        // ❌ User not found
         if (!user) {
             return res.status(404).json({
                 message: "This account is not registered in our database."
             });
         }
 
-        // ❌ Wrong password
         if (user.password !== password) {
             return res.status(401).json({
                 message: "Invalid credentials. Please verify your password."
             });
         }
 
-        // ⏰ AUTO EXPIRY CHECK ON LOGIN!
+        // ⏰ AUTO EXPIRY CHECK
         if (user.isPaid && user.expiryDate) {
             const today = new Date();
             const expiry = new Date(user.expiryDate);
-
             if (today > expiry) {
-                // 🔴 EXPIRED! Auto-revoke access!
                 user.isPaid = false;
                 user.paymentDate = null;
                 user.expiryDate = null;
+                user.hasLoggedIn = false;
+                user.firstLoginDate = null;
                 await user.save();
-
                 return res.status(403).json({
                     message: "Your 30-day subscription has expired. Please renew to continue.",
                     expired: true
@@ -106,14 +101,27 @@ app.post('/api/login', async (req, res) => {
             }
         }
 
-        // ✅ Send FULL user data including expiryDate to frontend!
+        // 🆕 TIMER STARTS ON FIRST LOGIN — NOT ON APPROVAL!
+        if (user.isPaid && !user.hasLoggedIn) {
+            // This is their FIRST login after being approved!
+            user.hasLoggedIn = true;
+            user.firstLoginDate = new Date();
+            // NOW set the expiry — 30 days from first login!
+            user.expiryDate = new Date(Date.now() + 2 * 60 * 1000); // 2 mins for testing!
+            // user.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days production!
+            await user.save();
+        }
+
+        // ✅ Send COMPLETE user data including expiryDate!
         res.json({
             _id: user._id,
             name: user.name,
             email: user.email,
             isPaid: user.isPaid,
             paymentDate: user.paymentDate,
-            expiryDate: user.expiryDate  // 🆕 THIS IS KEY! Sends expiry to localStorage!
+            expiryDate: user.expiryDate,
+            hasLoggedIn: user.hasLoggedIn,
+            firstLoginDate: user.firstLoginDate
         });
 
     } catch (error) {
@@ -123,7 +131,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// FETCH ALL STUDENTS FOR ADMIN
+// FETCH ALL STUDENTS
 app.get('/api/students', async (req, res) => {
     try {
         const students = await User.find();
@@ -133,28 +141,26 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
-// ✅ APPROVE/DISAPPROVE — CHECKS PAYMENT MODE!
+// ✅ APPROVE/DISAPPROVE — NO EXPIRY DATE SET HERE ANYMORE!
+// Timer only starts when student logs in for first time!
 app.put('/api/students/:id/approve', async (req, res) => {
     try {
         const student = await User.findById(req.params.id);
         student.isPaid = !student.isPaid;
 
-        // Check payment mode first!
-        const setting = await Setting.findOne();
-        const paymentRequired = setting ? setting.paymentRequired : false;
-
         if (student.isPaid) {
+            // Just approve — NO expiry date yet!
+            // Expiry starts on first login!
             student.paymentDate = new Date();
-            // Only set expiry in payment mode!
-            if (paymentRequired) {
-                //student.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                student.expiryDate = new Date(Date.now() + 2 * 60 * 1000);
-            } else {
-                student.expiryDate = null;
-            }
+            student.expiryDate = null;      // ← No expiry yet!
+            student.hasLoggedIn = false;    // ← Reset login status!
+            student.firstLoginDate = null;  // ← Reset first login!
         } else {
+            // Disapproving — clear everything!
             student.paymentDate = null;
             student.expiryDate = null;
+            student.hasLoggedIn = false;
+            student.firstLoginDate = null;
         }
 
         await student.save();
@@ -168,22 +174,21 @@ app.put('/api/students/:id/approve', async (req, res) => {
     }
 });
 
-// 🆕 AUTO EXPIRE ROUTE — flips expired students to PENDING in admin!
+// AUTO EXPIRE ROUTE
 app.put('/api/students/auto-expire', async (req, res) => {
     try {
         const now = new Date();
-
-        // Find all paid students whose expiry date has passed
         const expiredStudents = await User.find({
             isPaid: true,
             expiryDate: { $lt: now }
         });
 
-        // Auto disapprove all expired students
         for (const student of expiredStudents) {
             student.isPaid = false;
             student.paymentDate = null;
             student.expiryDate = null;
+            student.hasLoggedIn = false;
+            student.firstLoginDate = null;
             await student.save();
         }
 
@@ -196,7 +201,7 @@ app.put('/api/students/auto-expire', async (req, res) => {
     }
 });
 
-// UPLOAD VIDEO ROUTE
+// VIDEO ROUTES
 app.post('/api/videos/upload', async (req, res) => {
     try {
         const newVideo = new Video(req.body);
@@ -207,7 +212,6 @@ app.post('/api/videos/upload', async (req, res) => {
     }
 });
 
-// FETCH VIDEOS FOR STUDENTS
 app.get('/api/videos', async (req, res) => {
     try {
         const videos = await Video.find().sort({ createdAt: 1 });
@@ -217,7 +221,7 @@ app.get('/api/videos', async (req, res) => {
     }
 });
 
-// GET SETTINGS
+// SETTINGS ROUTES
 app.get('/api/settings', async (req, res) => {
     try {
         let setting = await Setting.findOne();
@@ -230,7 +234,6 @@ app.get('/api/settings', async (req, res) => {
     }
 });
 
-// UPDATE SETTINGS
 app.put('/api/settings', async (req, res) => {
     try {
         let setting = await Setting.findOne();
@@ -246,7 +249,6 @@ app.put('/api/settings', async (req, res) => {
     }
 });
 
-// HOME ROUTE
 app.get('/', (req, res) => res.send("MARO ACADEMY SERVER IS LIVE! 🚀"));
 
 const PORT = process.env.PORT || 10000;

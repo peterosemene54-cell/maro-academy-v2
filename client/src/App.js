@@ -1,12 +1,14 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// 🚀 HEAVY MOVE: "Lazy Loading" 
+// 🚀 LAZY LOADING
 const Register = lazy(() => import('./Register'));
 const Admin = lazy(() => import('./Admin'));
 const Login = lazy(() => import('./Login'));
 const VideoVault = lazy(() => import('./VideoVault'));
 const AccessDenied = lazy(() => import('./AccessDenied'));
+// 🆕 BROWSER WARNING PAGE
+const BrowserWarning = lazy(() => import('./BrowserWarning'));
 
 function App() {
   // 🔐 FIXED: Reads localStorage IMMEDIATELY - no more reload bug!
@@ -15,7 +17,7 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // 🆓 FREE MODE SWITCH - false = everyone watches free!
+  // 🆓 FREE MODE SWITCH
   const [paymentRequired, setPaymentRequired] = useState(() => {
     const mode = localStorage.getItem('paymentRequired');
     return mode ? JSON.parse(mode) : false;
@@ -42,7 +44,7 @@ function App() {
     return new Date() > new Date(user.expiryDate);
   };
 
-  // 🔑 Function to lock the suitcase when they log in
+  // 🔑 Handle Login
   const handleLogin = (userData) => {
     setUser(userData);
     localStorage.setItem('maroUser', JSON.stringify(userData));
@@ -53,45 +55,43 @@ function App() {
       <div className="min-h-screen bg-gray-100">
         <Suspense fallback={<div style={{textAlign: 'center', padding: '50px'}}>Loading Maro Academy... 🦾</div>}>
           <Routes>
-            {/* 🏠 The Student Gateway */}
+            {/* 🏠 Register */}
             <Route path="/" element={<Register />} />
             <Route path="/register" element={<Register />} />
-            
-            {/* 🔑 The Login Gate */}
+
+            {/* 🔑 Login */}
             <Route path="/login" element={<Login setUser={handleLogin} />} />
 
-            {/* 🔒 Access Denied Page */}
+            {/* 🔒 Access Denied */}
             <Route path="/access-denied" element={<AccessDenied />} />
 
-            {/* 🎬 THE VIP ROOM */}
-            <Route 
-              path="/video-vault" 
+            {/* 🆕 Browser Warning */}
+            <Route path="/browser-warning" element={<BrowserWarning />} />
+
+            {/* 🎬 VIDEO VAULT */}
+            <Route
+              path="/video-vault"
               element={
                 !paymentRequired ? (
-                  // 🆓 FREE MODE - everyone watches free!
                   <VideoVault user={user} />
                 ) : user ? (
                   isSubscriptionExpired(user) ? (
-                    // ⏰ EXPIRED - subscription ended!
                     <Navigate to="/access-denied" state={{ expired: true }} />
                   ) : user.isPaid ? (
-                    // ✅ PAID AND ACTIVE - welcome!
                     <VideoVault user={user} />
                   ) : (
-                    // ❌ NOT PAID - go pay first!
                     <Navigate to="/access-denied" />
                   )
                 ) : (
-                  // 🔒 NOT LOGGED IN - go login first!
                   <Navigate to="/login" />
                 )
-              } 
+              }
             />
 
-            {/* 🔐 The Oga's Secret Vault (Admin) */}
+            {/* 🔐 Admin */}
             <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
 
-            {/* 🚫 Auto-Redirect */}
+            {/* 🚫 Catch all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
