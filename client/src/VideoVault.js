@@ -43,7 +43,7 @@ const VideoVault = ({ user }) => {
   }, [navigate]);
 
   // ===============================
-  // 🛡️ 3. HTTP BACKUP CHECKER (Catches mode switch even if sockets fail)
+  // 🛡️ 3. HTTP BACKUP CHECKER
   // ===============================
   useEffect(() => {
     const checkSystemMode = async () => {
@@ -68,12 +68,12 @@ const VideoVault = ({ user }) => {
     };
 
     checkSystemMode();
-    const backupChecker = setInterval(checkSystemMode, 10000); // Check every 10 seconds
+    const backupChecker = setInterval(checkSystemMode, 10000);
     return () => clearInterval(backupChecker);
   }, []);
 
   // ===============================
-  // ⚡ 4. WEBSOCKET LISTENER (For instant kick if network allows)
+  // ⚡ 4. WEBSOCKET LISTENER
   // ===============================
   useEffect(() => {
     if (!user) return;
@@ -109,7 +109,7 @@ const VideoVault = ({ user }) => {
   }, [user]);
 
   // ===============================
-  // ⏰ 5. MIGHTY EXPIRY WATCHER (Only runs in Paid Mode)
+  // ⏰ 5. MIGHTY EXPIRY WATCHER
   // ===============================
   useEffect(() => {
     if (isFreeMode) return;
@@ -390,12 +390,9 @@ const VideoVault = ({ user }) => {
                 style={isFullscreen ? styles.playerWrapperFullscreen : styles.playerWrapper}
               >
                 <div id={playerDivId} style={styles.playerDiv} />
+                
+                {/* 🛡️ THE MIGHTY INVISIBLE FORCEFIELD (No physical black boxes needed) */}
                 <div style={styles.mightyShield} />
-                <div style={styles.topLeftBlocker} />
-                <div style={styles.topRightBlocker} />
-                <div style={styles.bottomBlocker} />
-                <div style={styles.bottomLeftBlocker} />
-                <div style={styles.centerTopBlocker} />
 
                 {isMobile && (
                   <button onClick={() => handleFullscreen(false)} style={styles.fullscreenInsideBtn}>
@@ -474,8 +471,13 @@ const VideoVault = ({ user }) => {
   );
 };
 
+// =============================================
+// 🎨 THE MIGHTY DESIGN SYSTEM (Pure Edge-to-Edge)
+// =============================================
 const styles = {
-  container: { minHeight: '100vh', background: '#050505', color: '#fff', paddingBottom: '50px' },
+  // ✅ Pure black background makes any leftover native bars invisible
+  container: { minHeight: '100vh', background: '#000', color: '#fff', paddingBottom: '50px' },
+  
   header: { padding: '20px 40px', background: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #111', marginBottom: '30px' },
   logoGroup: { display: 'flex', alignItems: 'center', gap: '15px' },
   logoIcon: { fontSize: '2rem' },
@@ -485,15 +487,40 @@ const styles = {
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' },
   layout: { display: 'flex', gap: '20px', maxWidth: '100%', margin: '0 auto', padding: '0 20px' },
   playerSection: { minWidth: 0 },
-  playerWrapper: { position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000', borderRadius: '24px', overflow: 'visible', boxShadow: '0 30px 60px rgba(0,0,0,0.7)', border: '1px solid #111' },
-  playerWrapperFullscreen: { position: 'relative', width: '100vw', height: '100vh', background: '#000', overflow: 'hidden' },
+  
+  // ✅ Removed border and border-radius for true edge-to-edge cinematic look
+  playerWrapper: { 
+    position: 'relative', 
+    width: '100%', 
+    paddingBottom: '56.25%', 
+    background: '#000', 
+    borderRadius: '0px', 
+    overflow: 'hidden', 
+    boxShadow: '0 30px 60px rgba(0,0,0,0.7)' 
+  },
+  
+  playerWrapperFullscreen: { 
+    position: 'relative', 
+    width: '100vw', 
+    height: '100vh', 
+    background: '#000', 
+    overflow: 'hidden' 
+  },
+  
+  // ✅ 100% exact fit
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  
+  // ✅ THE INVISIBLE FORCEFIELD (Stops all taps secretly)
   mightyShield: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'transparent' },
+  
+  // ✅ DESTROYED ALL THICK BLACK BOXES
   topRightBlocker: { display: 'none' },
-  bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
-  topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.85)', zIndex: 11 },
+  bottomBlocker: { display: 'none' },
+  topLeftBlocker: { display: 'none' },
+  bottomLeftBlocker: { display: 'none' },
   centerTopBlocker: { display: 'none' },
-  fullscreenInsideBtn: { position: 'absolute', bottom: '70px', right: '10px', zIndex: 999, background: 'rgba(0,0,0,0.8)', color: '#ffd700', border: '1px solid #ffd700', borderRadius: '8px', padding: '8px 12px', fontSize: '1.3rem', cursor: 'pointer' },
+  
+  fullscreenInsideBtn: { position: 'absolute', bottom: '20px', right: '20px', zIndex: 999, background: 'rgba(0,0,0,0.6)', color: '#ffd700', border: '1px solid #ffd700', borderRadius: '50%', width: '50px', height: '50px', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   fullscreenControlBtn: { background: '#111', border: '1px solid #ffd700', color: '#ffd700', padding: '10px 16px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', width: '100%', marginTop: '4px' },
   endOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   endCard: { textAlign: 'center', padding: '40px' },
