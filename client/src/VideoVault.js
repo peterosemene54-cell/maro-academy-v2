@@ -16,7 +16,7 @@ const VideoVault = ({ user }) => {
   const API_URL = "https://maro-academy-v2.onrender.com";
 
   // ===============================
-  // 🌐 BROWSER DETECTION — Problem 2 Fix!
+  // 🌐 BROWSER DETECTION
   // ===============================
   useEffect(() => {
     const ua = navigator.userAgent;
@@ -24,9 +24,7 @@ const VideoVault = ({ user }) => {
     const isOpera = /OPR/.test(ua) || /Opera/.test(ua);
     const isUC = /UCBrowser/.test(ua);
     const isSamsung = /SamsungBrowser/.test(ua);
-    const isEdge = /Edg/.test(ua);
 
-    // If NOT proper Chrome — send to warning page!
     if (!isChrome || isOpera || isUC || isSamsung) {
       navigate('/browser-warning');
       return;
@@ -35,11 +33,6 @@ const VideoVault = ({ user }) => {
 
   // ===============================
   // ⏰ MIGHTY EXPIRY WATCHER
-  // Checks every 5 seconds — kicks instantly!
-  // ===============================
-   // ===============================
-  // ⏰ MIGHTY EXPIRY WATCHER
-  // Checks every 5 seconds — kicks ONLY the expired person!
   // ===============================
   useEffect(() => {
     const checkExpiry = async () => {
@@ -50,7 +43,6 @@ const VideoVault = ({ user }) => {
       }
 
       const userData = JSON.parse(savedUser);
-      // We check specifically for THIS user's data
       if (!userData.expiryDate || !userData._id) return;
 
       const now = new Date();
@@ -60,7 +52,6 @@ const VideoVault = ({ user }) => {
         console.log("🔴 EXPIRED! Kicking you out! GBAMA! 💥");
 
         try {
-          // ✅ FIX: Only update THIS specific student using their ID
           await axios.put(`${API_URL}/api/students/auto-expire/${userData._id}`);
           console.log("✅ Your status flipped to PENDING!");
         } catch (e) {
@@ -70,13 +61,12 @@ const VideoVault = ({ user }) => {
         localStorage.removeItem('maroUser');
         navigate('/access-denied', { state: { expired: true } });
       }
-    }; // This closes checkExpiry
+    };
 
     checkExpiry();
-    const expiryWatcher = setInterval(checkExpiry,1000);
+    const expiryWatcher = setInterval(checkExpiry, 1000);
     return () => clearInterval(expiryWatcher);
-  }, [navigate]); // This closes the useEffect
-
+  }, [navigate]);
 
   // ===============================
   // 🛡️ SECURITY & RESPONSIVENESS
@@ -265,6 +255,25 @@ const VideoVault = ({ user }) => {
     setActiveVideo(video);
   };
 
+  // 🆕 FULLSCREEN HANDLER
+  const handleFullscreen = () => {
+    const wrapper = document.getElementById('player-wrapper');
+    if (!wrapper) return;
+    if (wrapper.requestFullscreen) {
+      wrapper.requestFullscreen();
+    } else if (wrapper.webkitRequestFullscreen) {
+      wrapper.webkitRequestFullscreen();
+    } else if (wrapper.mozRequestFullScreen) {
+      wrapper.mozRequestFullScreen();
+    } else if (wrapper.msRequestFullscreen) {
+      wrapper.msRequestFullscreen();
+    }
+    // Also try to lock screen to landscape on mobile!
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
+  };
+
   if (loading) return (
     <div style={styles.loadingWrapper}>
       <div style={styles.loaderSpinner}></div>
@@ -292,7 +301,8 @@ const VideoVault = ({ user }) => {
         <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 5 }}>
           {activeVideo && (
             <>
-              <div style={styles.playerWrapper}>
+              {/* 🆕 id added for fullscreen */}
+              <div id="player-wrapper" style={styles.playerWrapper}>
                 <div id={playerDivId} style={styles.playerDiv} />
                 <div style={styles.mightyShield} />
                 <div style={styles.topLeftBlocker} />
@@ -300,6 +310,15 @@ const VideoVault = ({ user }) => {
                 <div style={styles.bottomBlocker} />
                 <div style={styles.bottomLeftBlocker} />
                 <div style={styles.centerTopBlocker} />
+
+                {/* 🆕 FULLSCREEN BUTTON — shows on mobile inside player! */}
+                {isMobile && (
+                  <button
+                    onClick={handleFullscreen}
+                    style={styles.fullscreenInsideBtn}>
+                    ⛶
+                  </button>
+                )}
 
                 {videoEnded && (
                   <div style={styles.endOverlay}>
@@ -321,13 +340,56 @@ const VideoVault = ({ user }) => {
                 )}
               </div>
 
-              {/* CONTROLS */}
-              <div style={styles.controls}>
-                <button style={styles.skipBtn} onClick={() => handleSkip(-10)}>⏪ 10s</button>
-                <button style={styles.playBtn} onClick={togglePlayback}>
-                  {isPlaying ? '⏸ PAUSE' : '▶ PLAY LESSON'}
+              {/* 🆕 CONTROLS — Fixed for mobile! */}
+              <div style={{
+                ...styles.controls,
+                gap: isMobile ? '8px' : '20px',
+                flexWrap: isMobile ? 'wrap' : 'nowrap',
+                padding: isMobile ? '0 10px' : '0'
+              }}>
+                <button
+                  style={{
+                    ...styles.skipBtn,
+                    padding: isMobile ? '10px 12px' : '10px 20px',
+                    fontSize: isMobile ? '0.8rem' : '1rem'
+                  }}
+                  onClick={() => handleSkip(-10)}>
+                  ⏪ 10s
                 </button>
-                <button style={styles.skipBtn} onClick={() => handleSkip(10)}>10s ⏩</button>
+
+                {/* 🆕 PLAY/PAUSE — shorter text on mobile so it fits! */}
+                <button
+                  style={{
+                    ...styles.playBtn,
+                    padding: isMobile ? '12px 20px' : '12px 45px',
+                    fontSize: isMobile ? '0.85rem' : '1rem',
+                    flex: isMobile ? 1 : 'none'
+                  }}
+                  onClick={togglePlayback}>
+                  {isPlaying
+                    ? (isMobile ? '⏸ PAUSE' : '⏸ PAUSE')
+                    : (isMobile ? '▶ PLAY' : '▶ PLAY LESSON')
+                  }
+                </button>
+
+                <button
+                  style={{
+                    ...styles.skipBtn,
+                    padding: isMobile ? '10px 12px' : '10px 20px',
+                    fontSize: isMobile ? '0.8rem' : '1rem'
+                  }}
+                  onClick={() => handleSkip(10)}>
+                  10s ⏩
+                </button>
+
+                {/* 🆕 FULLSCREEN BUTTON BELOW CONTROLS ON MOBILE */}
+                {isMobile && (
+                  <button
+                    onClick={handleFullscreen}
+                    style={styles.fullscreenControlBtn}>
+                    ⛶ Fullscreen
+                  </button>
+                )}
               </div>
 
               {/* INFO BOX */}
@@ -384,7 +446,7 @@ const VideoVault = ({ user }) => {
 };
 
 // ===============================
-// 🎨 MIGHTY STYLES — Problem 1 Fix: BIGGER VIDEO!
+// 🎨 MIGHTY STYLES
 // ===============================
 const styles = {
   container: { minHeight: '100vh', background: '#050505', color: '#fff', paddingBottom: '50px' },
@@ -395,10 +457,8 @@ const styles = {
   userMeta: { display: 'flex', alignItems: 'center', gap: '20px' },
   userName: { color: '#888', fontWeight: '500' },
   logoutBtn: { background: 'transparent', border: '1px solid #333', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' },
-  // 🆕 FIX — Less padding = more space for video!
   layout: { display: 'flex', gap: '20px', maxWidth: '100%', margin: '0 auto', padding: '0 20px' },
   playerSection: { minWidth: 0 },
-  // 🆕 FIX — Bigger video! paddingBottom increased from 58% to 62%
   playerWrapper: {
     position: 'relative',
     width: '100%',
@@ -415,13 +475,43 @@ const styles = {
   bottomBlocker: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.55)', zIndex: 11 },
   topLeftBlocker: { position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', background: 'rgba(0,0,0,0.85)', zIndex: 11 },
   centerTopBlocker: { display: 'none' },
+
+  // 🆕 FULLSCREEN BUTTON INSIDE PLAYER (bottom right corner)
+  fullscreenInsideBtn: {
+    position: 'absolute',
+    bottom: '70px',  // above bottom blocker
+    right: '10px',
+    zIndex: 20,
+    background: 'rgba(0,0,0,0.7)',
+    color: '#ffd700',
+    border: '1px solid #ffd700',
+    borderRadius: '8px',
+    padding: '6px 10px',
+    fontSize: '1.2rem',
+    cursor: 'pointer',
+  },
+
+  // 🆕 FULLSCREEN BUTTON IN CONTROLS ROW
+  fullscreenControlBtn: {
+    background: '#111',
+    border: '1px solid #ffd700',
+    color: '#ffd700',
+    padding: '10px 16px',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '0.85rem',
+    width: '100%',
+    marginTop: '4px'
+  },
+
   endOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   endCard: { textAlign: 'center', padding: '40px' },
   endIcon: { fontSize: '4rem', marginBottom: '15px' },
   endTitle: { color: '#ffd700', fontSize: '2rem', marginBottom: '10px' },
   endText: { color: '#888', maxWidth: '350px', margin: '0 auto 20px', lineHeight: '1.6' },
   replayBtn: { background: '#ffd700', color: '#000', padding: '10px 25px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer' },
-  controls: { display: 'flex', gap: '20px', justifyContent: 'center', margin: '30px 0' },
+  controls: { display: 'flex', gap: '20px', justifyContent: 'center', margin: '30px 0', alignItems: 'center' },
   playBtn: { background: '#ffd700', border: 'none', color: '#000', padding: '12px 45px', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '1rem', textTransform: 'uppercase' },
   skipBtn: { background: '#111', border: '1px solid #222', color: '#fff', padding: '10px 20px', borderRadius: '10px', cursor: 'pointer' },
   infoBox: { background: '#0a0a0a', padding: '30px', borderRadius: '20px', border: '1px solid #111' },
