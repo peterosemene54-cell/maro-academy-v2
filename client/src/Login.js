@@ -1,7 +1,7 @@
 /**
  * MARO ACADEMY GLOBAL - THE SENTINEL LOGIN
- * VERSION: 6.2.0 (Hardened Token Edition)
- * FEATURES: Dark Mode UI, Error Mapping, Secure Token Capture, Auto-Redirection logic
+ * VERSION: 6.4.0 (Unbreakable Free/Paid Mode Logic)
+ * FEATURES: Dark Mode UI, Error Mapping, Secure Token Capture, Free Mode Bypass
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -17,13 +17,13 @@ const Login = ({ setUser }) => {
     
     const navigate = useNavigate();
     const location = useLocation();
-    const emailInputRef = useRef(null); // 🛠️ ADDED: For auto-focus
+    const emailInputRef = useRef(null);
 
     // UI Feedback for users redirected from the "Kick" system
     const queryParams = new URLSearchParams(location.search);
     const reason = queryParams.get('reason');
 
-    // 🛠️ ADDED: Auto-focus email input on page load
+    // 🛠️ Auto-focus email input on page load
     useEffect(() => {
         if (emailInputRef.current) {
             emailInputRef.current.focus();
@@ -36,7 +36,7 @@ const Login = ({ setUser }) => {
     };
 
     // =============================================
-    // 🚀 THE SECURE LOGIN LOGIC (Updated for v6.2 Backend)
+    // 🚀 THE SECURE LOGIN LOGIC (v6.4 Unbreakable)
     // =============================================
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -58,42 +58,27 @@ const Login = ({ setUser }) => {
             localStorage.removeItem('maroToken');
 
             // 🛡️ CRITICAL FIX: Save the new Spoof-Proof Session Token
-            // This is what VideoVault will use to unlock the videos
             if (sessionToken) {
                 localStorage.setItem('maroToken', sessionToken);
             }
 
-            // 3. Pre-Vault Approval Check (UX Improvement)
-            // If payment isn't active, stop them here before they enter the vault
-            // ✅ NEW LOGIC: Check Global Settings FIRST, then check user status
-const checkSystemMode = async () => {
-    try {
-        // 1. Ask backend: "Are we in Free or Paid mode?"
-        const res = await axios.get(`${API_URL}/api/settings`);
-        const isFreeMode = !res.data.paymentRequired;
+            // ==========================================
+            // 🆕 THE UNBREAKABLE FREE/PAID LOGIC
+            // ==========================================
+            // Ask the backend: "Are we in Free Mode or Paid Mode?"
+            const settingsRes = await axios.get(`${API_URL}/api/settings`);
+            const isFreeMode = !settingsRes.data.paymentRequired;
 
-        if (isFreeMode) {
-            // FREE MODE: Don't check isPaid at all. Send them straight to videos!
-            localStorage.setItem('maroUser', JSON.stringify(userData));
-            localStorage.setItem('maroToken', token);
-            navigate('/videos'); // Change '/videos' to whatever your video route is
-        } else {
-            // PAID MODE: NOW check if Oga approved them
-            if (userData.isPaid) {
-                localStorage.setItem('maroUser', JSON.stringify(userData));
-                localStorage.setItem('maroToken', token);
-                navigate('/videos'); 
-            } else {
-                // Show the red error box
-                setError("Access Granted, but Admin hasn’t approved your payment yet. Contact Oga.");
+            if (!isFreeMode && !userData.isPaid) {
+                // PAID MODE + NOT APPROVED = Block them on this screen
+                setStatus({ 
+                    loading: false, 
+                    error: "Access Granted, but Admin hasn’t approved your payment yet. Contact Oga." 
+                });
+                return; // STOP HERE. Don't let them enter the vault.
             }
-        }
-    } catch (error) {
-        setError("Could not verify system status.");
-    }
-};
-
-checkSystemMode();
+            // If Free Mode OR (Paid Mode + Approved), they pass through below!
+            // ==========================================
 
             // 4. Local State & Storage Update
             setUser(userData);
@@ -111,13 +96,10 @@ checkSystemMode();
             const serverMessage = error.response?.data?.message;
 
             if (statusCode === 403) {
-                // Scenario: Account Expired (GBAMA! 💥)
                 navigate("/access-denied", { state: { expired: true } });
             } else if (statusCode === 423) {
-                // 🛡️ ADDED: Scenario: IP Blacklisted by High Security Limiter
                 setStatus({ loading: false, error: "⛔ IP BLACKLISTED: Too many failed attempts. Wait 1 hour or change network." });
             } else if (statusCode === 429) {
-                // Scenario: Standard Rate Limiter active
                 setStatus({ loading: false, error: "⏳ System cooling down. Wait a few minutes." });
             } else {
                 setStatus({ loading: false, error: serverMessage || "Vault Unreachable. Check connection." });
@@ -132,7 +114,7 @@ checkSystemMode();
                 <div style={styles.header}>
                     <div style={styles.iconBox}>🦾</div>
                     <h1 style={styles.title}>MARO ACADEMY</h1>
-                    <p style={styles.subtitle}>SECURE SENTINEL ACCESS v6.2</p>
+                    <p style={styles.subtitle}>SECURE SENTINEL ACCESS v6.4</p>
                 </div>
 
                 {/* 🚩 ALERTS & WARNINGS */}
@@ -153,7 +135,7 @@ checkSystemMode();
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>GMAIL ADDRESS</label>
                         <input 
-                            ref={emailInputRef} // 🛠️ ADDED: Auto-focus target
+                            ref={emailInputRef}
                             name="email"
                             type="email" 
                             placeholder="maro@example.com" 
@@ -233,7 +215,7 @@ const styles = {
         color: '#fff',
         outline: 'none',
         transition: '0.3s',
-        boxSizing: 'border-box' // 🛠️ ADDED: Prevents mobile overflow
+        boxSizing: 'border-box'
     },
     button: {
         marginTop: '10px',
