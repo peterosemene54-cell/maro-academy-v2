@@ -65,10 +65,35 @@ const Login = ({ setUser }) => {
 
             // 3. Pre-Vault Approval Check (UX Improvement)
             // If payment isn't active, stop them here before they enter the vault
-            if (!userData.isPaid) {
-                setStatus({ loading: false, error: "✋ Access Granted, but Admin hasn't approved your payment yet. Contact Oga." });
-                return; // Stop the navigation
+            // ✅ NEW LOGIC: Check Global Settings FIRST, then check user status
+const checkSystemMode = async () => {
+    try {
+        // 1. Ask backend: "Are we in Free or Paid mode?"
+        const res = await axios.get(`${API_URL}/api/settings`);
+        const isFreeMode = !res.data.paymentRequired;
+
+        if (isFreeMode) {
+            // FREE MODE: Don't check isPaid at all. Send them straight to videos!
+            localStorage.setItem('maroUser', JSON.stringify(userData));
+            localStorage.setItem('maroToken', token);
+            navigate('/videos'); // Change '/videos' to whatever your video route is
+        } else {
+            // PAID MODE: NOW check if Oga approved them
+            if (userData.isPaid) {
+                localStorage.setItem('maroUser', JSON.stringify(userData));
+                localStorage.setItem('maroToken', token);
+                navigate('/videos'); 
+            } else {
+                // Show the red error box
+                setError("Access Granted, but Admin hasn’t approved your payment yet. Contact Oga.");
             }
+        }
+    } catch (error) {
+        setError("Could not verify system status.");
+    }
+};
+
+checkSystemMode();
 
             // 4. Local State & Storage Update
             setUser(userData);
