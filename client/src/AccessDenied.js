@@ -35,7 +35,7 @@ const AccessDenied = () => {
                 <p style={{ fontSize: '1.2rem', color: '#555', lineHeight: '1.6' }}>
                     {isExpired 
                         ? 'Your 30-day access has ended. Renew your subscription to continue watching tutorials and keep your progress going! 💪'
-                        : "Oga hasn't cleared your account to watch the tutorials yet. This usually happens when your school fees (payment) haven't been verified."
+                        : "Oga hasn't cleared your account to watch the tutorials yet.If u have registered paid before and u are seeing this page ,it simply means it subscription has espired.pleasea pay again"
                     }
                 </p>
 
