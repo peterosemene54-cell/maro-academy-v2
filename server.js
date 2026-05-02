@@ -1,8 +1,8 @@
 /**
  * MARO ACADEMY GLOBAL - THE INFINITE CITADEL
- * VERSION: 6.2.0 (Hardened Enterprise Architecture)
- * DESCRIPTION: Full-scale backend with Socket.io, Cron Jobs, Bcrypt Security, and React-aligned Routes.
- * GOAL: 500+ Lines of Unbreakable Logic.
+ * VERSION: 6.3.0 (2-Minute Timer & Nuclear Switch Architecture)
+ * DESCRIPTION: Full-scale backend with Socket.io, Instant Expiry Triggers, and Global Mode Switches.
+ * GOAL: Unbreakable Logic.
  */
 
 const express = require('express');
@@ -15,8 +15,8 @@ const morgan = require('morgan');
 const http = require('http');
 const { Server } = require('socket.io');
 const cron = require('node-cron');
-const bcrypt = require('bcryptjs'); // 🛡️ ADDED: Password Hashing Library
-const crypto = require('crypto'); // 🛡️ ADDED: For secure session tokens
+const bcrypt = require('bcryptjs'); 
+const crypto = require('crypto'); 
 const path = require('path');
 require('dotenv').config();
 
@@ -37,23 +37,18 @@ const io = new Server(server, {
 // 🛡️ SECTION 1: SECURITY & MIDDLEWARE STACK
 // =============================================
 
-// Logger
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
 
-// Security Headers
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
     contentSecurityPolicy: false,
 }));
 
-// Anti-NoSQL Injection
 app.use(mongoSanitize());
 
-// Request Parsing
 app.use(express.json({ limit: '20kb' }));
 app.use(express.urlencoded({ extended: true, limit: '20kb' }));
 
-// CORS Policy (Aligned with Vercel Frontend)
 const allowedOrigins = [
     'http://localhost:3000',
     'https://maro-academy.vercel.app',
@@ -76,14 +71,14 @@ app.use(cors({
 // =============================================
 
 const apiLimiter = rateLimit({
-    windowMs: 10 * 60 * 1000, // 10 minutes
+    windowMs: 10 * 60 * 1000, 
     max: 200,
     message: { status: 429, message: "System cooling down. Please wait." }
 });
 app.use('/api/', apiLimiter);
 
 const highSecurityLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: 60 * 60 * 1000, 
     max: 5,
     message: { status: 423, message: "Critical Alert: Too many failed attempts. IP Blacklisted." }
 });
@@ -110,9 +105,9 @@ const UserSchema = new mongoose.Schema({
         type: String, 
         required: true,
         minlength: 8,
-        select: false // 🛡️ ADDED: Passwords won't be returned in queries by default
+        select: false 
     },
-    sessionToken: { type: String, default: null, select: false }, // 🛡️ ADDED: Spoof-proof auth
+    sessionToken: { type: String, default: null, select: false }, 
     role: { 
         type: String, 
         enum: ['student', 'admin', 'moderator'], 
@@ -182,7 +177,6 @@ const checkVaultAccess = async (req, res, next) => {
         }
 
         if (settings.paymentRequired) {
-            // 🛡️ FIXED: We now look for a cryptographically secure session token instead of the raw Mongo ID
             const sessionToken = req.headers['x-vault-token'];
             
             if (!sessionToken) return res.status(401).json({ message: "Access Token Missing." });
@@ -198,7 +192,7 @@ const checkVaultAccess = async (req, res, next) => {
             if (user.expiryDate && new Date() > new Date(user.expiryDate)) {
                 user.isPaid = false;
                 user.accountStatus = 'Expired';
-                user.sessionToken = null; // Destroy token
+                user.sessionToken = null; 
                 await user.save();
                 
                 io.to(user._id.toString()).emit('security_alert', { 
@@ -209,7 +203,7 @@ const checkVaultAccess = async (req, res, next) => {
                 return res.status(403).json({ message: "Session Expired." });
             }
             
-            req.user = user; // Attach user to request
+            req.user = user; 
         }
         next();
     } catch (error) {
@@ -218,10 +212,8 @@ const checkVaultAccess = async (req, res, next) => {
     }
 };
 
-// 🛡️ ADDED: Simple Admin Auth Middleware to protect command center
 const checkAdmin = (req, res, next) => {
     const adminKey = req.headers['x-admin-key'];
-    // Must match the ASCII array in your React Admin.jsx: [77, 97, 114, 111, 65, 100, 109, 105, 110, 50, 48, 50, 54]
     if (adminKey === 'MaroAdmin2026') {
         next();
     } else {
@@ -243,9 +235,8 @@ app.post('/api/register', highSecurityLimiter, async (req, res) => {
         }
 
         const emailExists = await User.findOne({ email });
-        if (emailExists) return res.status(409).json({ message: "Email is already in our records." }); // 🛡️ Fixed 400 to 409
+        if (emailExists) return res.status(409).json({ message: "Email is already in our records." }); 
 
-        // 🛡️ FIXED: Hash the password before saving!
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -274,7 +265,6 @@ app.post('/api/login', highSecurityLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // 🛡️ FIXED: Explicitly select password to compare it
         const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
 
         if (!user) {
@@ -282,25 +272,21 @@ app.post('/api/login', highSecurityLimiter, async (req, res) => {
             return res.status(401).json({ message: "Credentials not recognized." });
         }
 
-        // 🛡️ FIXED: Compare hashed password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             await SecurityLog.create({ event: 'FAILED_LOGIN_ATTEMPT', email, ipAddress: req.ip, severity: 'Medium' });
             return res.status(401).json({ message: "Credentials not recognized." });
         }
 
-        // Update Metadata
         user.loginCount += 1;
         user.lastActive = Date.now();
         user.deviceInfo = req.headers['user-agent'];
 
-        // Payment logic
         if (user.isPaid && !user.hasLoggedIn) {
             user.hasLoggedIn = true;
             user.expiryDate = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000));
         }
 
-        // 🛡️ ADDED: Generate a secure, random session token
         const sessionToken = crypto.randomBytes(32).toString('hex');
         user.sessionToken = sessionToken;
         await user.save();
@@ -312,10 +298,9 @@ app.post('/api/login', highSecurityLimiter, async (req, res) => {
             severity: 'Low'
         });
 
-        // Return user data AND the token (React needs to save this)
         const userObject = user.toObject();
-        delete userObject.password; // Ensure password never goes to frontend
-        delete userObject.sessionToken; // We send it separately
+        delete userObject.password; 
+        delete userObject.sessionToken; 
 
         res.status(200).json({ ...userObject, sessionToken });
     } catch (err) {
@@ -327,7 +312,6 @@ app.post('/api/login', highSecurityLimiter, async (req, res) => {
 // 🛠️ SECTION 6: THE COMMAND CENTER (ADMIN ROUTES)
 // =============================================
 
-// 🛡️ FIXED: React Admin calls /api/students
 app.get('/api/students', checkAdmin, async (req, res) => {
     try {
         const students = await User.find({ role: 'student' }).sort({ createdAt: -1 });
@@ -337,30 +321,32 @@ app.get('/api/students', checkAdmin, async (req, res) => {
     }
 });
 
-// 🛡️ FIXED: React Admin calls /api/students/:id/approve
+// 🛠️ UPDATED: The 2-Minute Timer Approve/Revoke Switch
 app.put('/api/students/:id/approve', checkAdmin, async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ message: "User not found." });
 
-        user.isPaid = !user.isPaid;
-        
+        // If Approving them
         if (!user.isPaid) {
-            user.sessionToken = null; // Kill their session if revoked
+            user.isPaid = true;
+            // 🛠️ SET EXACTLY 2 MINUTES FROM NOW FOR TESTING
+            user.expiryDate = new Date(Date.now() + (2 * 60 * 1000)); 
+        } 
+        // If Revoking them
+        else {
+            user.isPaid = false;
+            user.sessionToken = null; 
             io.to(user._id.toString()).emit('force_disconnect', { reason: 'Admin Revoked Access' });
-        } else {
-            user.hasLoggedIn = false;
-            user.expiryDate = null;
         }
 
         await user.save();
-        res.json({ message: "User status updated and synced." });
+        res.json({ message: "User status updated.", user });
     } catch (e) {
         res.status(500).json({ message: "Update failed." });
     }
 });
 
-// Original Backend Admin Routes (Kept for future use)
 app.get('/api/admin/dashboard-stats', checkAdmin, async (req, res) => {
     try {
         const stats = {
@@ -402,7 +388,6 @@ app.get('/api/videos', checkVaultAccess, async (req, res) => {
     }
 });
 
-// 🛡️ FIXED: React Admin calls /api/videos/upload
 app.post('/api/videos/upload', checkAdmin, async (req, res) => {
     try {
         const newVideo = await Video.create(req.body);
@@ -412,7 +397,6 @@ app.post('/api/videos/upload', checkAdmin, async (req, res) => {
     }
 });
 
-// Original Secure Upload (Kept for future direct DB inserts)
 app.post('/api/videos/secure-upload', checkAdmin, async (req, res) => {
     try {
         const newVideo = await Video.create(req.body);
@@ -426,15 +410,25 @@ app.post('/api/videos/secure-upload', checkAdmin, async (req, res) => {
 // ⚙️ SECTION 8: GLOBAL SETTINGS & SOCKETS
 // =============================================
 
-// 🛡️ FIXED: React Admin calls /api/settings
 app.get('/api/settings', async (req, res) => {
     const settings = await Setting.findOne() || await Setting.create({});
     res.json(settings);
 });
 
+// 🛠️ UPDATED: The Nuclear Watch Free / Restricted Switch
 app.put('/api/settings', checkAdmin, async (req, res) => {
     try {
         const updated = await Setting.findOneAndUpdate({}, req.body, { new: true, upsert: true });
+        
+        // ☢️ NUCLEAR OPTION: If switching to RESTRICTED mode, reset ALL students instantly
+        if (updated.paymentRequired === true) {
+            await User.updateMany(
+                { role: 'student' },
+                { $set: { isPaid: false, sessionToken: null } }
+            );
+            console.log("☢️ RESTRICTED MODE: All access revoked globally.");
+            io.emit('force_disconnect', { reason: 'System switched to Restricted Mode' });
+        }
         
         io.emit('system_broadcast', {
             maintenance: updated.maintenanceMode,
@@ -448,7 +442,6 @@ app.put('/api/settings', checkAdmin, async (req, res) => {
     }
 });
 
-// Original System Routes (Aliases)
 app.get('/api/system/settings', async (req, res) => {
     const settings = await Setting.findOne() || await Setting.create({});
     res.json(settings);
@@ -464,7 +457,7 @@ app.put('/api/system/settings', checkAdmin, async (req, res) => {
     }
 });
 
-// Auto-expire route triggered by frontend timer as a backup
+// 🛠️ UPDATED: Instant Admin Flash on 2-Minute Expiry
 app.put('/api/students/auto-expire/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -473,6 +466,10 @@ app.put('/api/students/auto-expire/:id', async (req, res) => {
             user.accountStatus = 'Expired';
             user.sessionToken = null;
             await user.save();
+            
+            // 🛠️ INSTANT ADMIN NOTIFICATION: Tell the Admin panel to refresh THIS specific user instantly
+            io.emit('admin_user_expired', { userId: user._id });
+            
             res.json({ success: true });
         } else {
             res.status(400).json({ message: "Condition not met." });
@@ -486,7 +483,6 @@ app.put('/api/students/auto-expire/:id', async (req, res) => {
 // 🧹 SECTION 9: AUTOMATED CRON JOBS
 // =============================================
 
-// Every midnight: Auto-expire users who passed their date
 cron.schedule('0 0 * * *', async () => {
     console.log('⏰ Running midnight security sweep...');
     const now = new Date();
@@ -497,7 +493,6 @@ cron.schedule('0 0 * * *', async () => {
     console.log(`✅ Sweep complete. ${result.modifiedCount} accounts expired.`);
 });
 
-// Every Sunday: Clear old low-severity logs
 cron.schedule('0 0 * * 0', async () => {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     await SecurityLog.deleteMany({ timestamp: { $lt: thirtyDaysAgo }, severity: 'Low' });
@@ -521,7 +516,7 @@ io.on('connection', (socket) => {
 
 app.get('/system-check', (req, res) => {
     res.status(200).json({
-        engine: "Maro-V6.2",
+        engine: "Maro-V6.3",
         uptime: process.uptime(),
         memory: process.memoryUsage(),
         db_state: mongoose.connection.readyState === 1 ? 'Healthy' : 'Disconnected'
@@ -532,7 +527,7 @@ app.get('/', (req, res) => {
     res.send(`
         <div style="background:#000; color:#ffd700; font-family:monospace; padding:100px; text-align:center;">
             <h1 style="font-size:3rem;">⚡ MARO ACADEMY GLOBAL ⚡</h1>
-            <p style="color:#555;">CITADEL VERSION 6.2.0 | STATUS: HARDENED</p>
+            <p style="color:#555;">CITADEL VERSION 6.3.0 | STATUS: 2-MIN TIMER ACTIVE</p>
             <hr style="border:1px solid #222; width:50%;">
             <p>SOCKET ENGINE: ACTIVE</p>
             <p>DATABASE: CONNECTED</p>
@@ -541,7 +536,6 @@ app.get('/', (req, res) => {
     `);
 });
 
-// Error Management
 app.use((err, req, res, next) => {
     console.error("🔥 SYSTEM ALERT:", err.message);
     res.status(500).json({ error: "Citadel internal failure. Lockdown mode active." });
@@ -558,7 +552,8 @@ mongoose.connect(MONGO_URI).then(() => {
         🌐  PORT: ${PORT}
         🔐  SECURITY LEVEL: MAXIMUM
         🔑  ENCRYPTION: BCRYPTJS ACTIVE
-        💎  VERSION: 6.2.0
+        ⏱️  TIMER: 2-MINUTE TESTING MODE
+        💎  VERSION: 6.3.0
         ================================================
         `);
     });

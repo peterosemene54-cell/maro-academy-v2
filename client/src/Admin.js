@@ -1,11 +1,12 @@
 /**
  * MARO ACADEMY GLOBAL - CITADEL COMMANDER
- * VERSION: 7.1.0 (Enterprise Admin Edition - Hardened)
- * FEATURES: Global Free Toggle, Real-time Sync, Advanced Analytics, Video Publishing, Session Lock
+ * VERSION: 7.2.0 (2-Min Timer & Instant Flash Edition)
+ * FEATURES: Global Free Toggle, Real-time Sync, Instant Expiry Flash, Video Publishing, Session Lock
  */
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { io } from 'socket.io-client'; // 🛠️ ADDED: For instant table flashes
 
 const API_URL = "https://maro-academy-v2.onrender.com";
 
@@ -37,12 +38,15 @@ const Admin = () => {
     const inactivityTimerRef = useRef(null);
     const warningTimerRef = useRef(null);
 
+    // 🛠️ ADDED: Secure Headers so backend doesn't block Admin actions
+    const adminHeaders = { headers: { 'x-admin-key': ADMIN_PASSWORD } };
+
     // =============================================
     // 🛠️ DATA FETCHING & SYNC
     // =============================================
     const fetchStudents = useCallback(async () => {
         try {
-            const res = await axios.get(`${API_URL}/api/students`);
+            const res = await axios.get(`${API_URL}/api/students`, adminHeaders);
             setStudents(res.data);
             setLoading(false);
         } catch (error) {
@@ -64,11 +68,26 @@ const Admin = () => {
         if (isAuthenticated) {
             fetchStudents();
             fetchSettings();
-            // ⚡ High-Frequency Refresh (3s for stability)
             const ticker = setInterval(fetchStudents, 3000);
             return () => clearInterval(ticker);
         }
     }, [isAuthenticated, fetchStudents, fetchSettings]);
+
+    // =============================================
+    // ⚡ 🛠️ ADDED: INSTANT EXPIRY FLASH SOCKET
+    // =============================================
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        
+        const socket = io(API_URL, { transports: ['websocket'] });
+
+        socket.on('admin_user_expired', (data) => {
+            console.log("⚡ FLASH UPDATE: A student just burned out!", data.userId);
+            fetchStudents(); // Instantly refresh the table the millisecond they expire
+        });
+
+        return () => socket.disconnect();
+    }, [isAuthenticated, fetchStudents]);
 
     // =============================================
     // 🔒 SESSION MANAGEMENT (Auto-Lock on Idle)
@@ -78,9 +97,7 @@ const Admin = () => {
         clearTimeout(warningTimerRef.current);
         clearTimeout(inactivityTimerRef.current);
         
-        // Warn after 14 minutes
         warningTimerRef.current = setTimeout(() => setSessionWarning(true), 14 * 60 * 1000);
-        // Lock after 15 minutes
         inactivityTimerRef.current = setTimeout(() => {
             setIsAuthenticated(false);
             alert("🔒 SESSION EXPIRED: Console locked due to inactivity.");
@@ -91,7 +108,7 @@ const Admin = () => {
         if (!isAuthenticated) return;
         const events = ['mousemove', 'keydown', 'click', 'scroll'];
         events.forEach(e => window.addEventListener(e, resetTimers));
-        resetTimers(); // Start timer on login
+        resetTimers(); 
 
         return () => {
             events.forEach(e => window.removeEventListener(e, resetTimers));
@@ -140,19 +157,25 @@ const Admin = () => {
 
     const toggleApproval = async (id) => {
         try {
-            await axios.put(`${API_URL}/api/students/${id}/approve`);
-            setStudents(prev => prev.map(s => s._id === id ? { ...s, isPaid: !s.isPaid } : s));
+            await axios.put(`${API_URL}/api/students/${id}/approve`, {}, adminHeaders);
+            fetchStudents(); // Fetch to show the exact 2-minute timestamp in the table
         } catch (e) { alert("Action Failed"); }
     };
 
     const togglePaymentMode = async () => {
-        const modeLabel = paymentRequired ? "FREE MODE (Open Gates)" : "PAID MODE (Restrict)";
-        if (!window.confirm(`CRITICAL: Switch entire system to ${modeLabel}?`)) return;
+        const modeLabel = !paymentRequired ? "RESTRICTED MODE (2-Min Timers)" : "FREE MODE (Open Gates)";
+        if (!window.confirm(`CRITICAL: Switch system to ${modeLabel}?\n\nNote: Switching to Restricted will DISAPPROVE everyone immediately.`)) return;
         
         try {
-            const res = await axios.put(`${API_URL}/api/settings`, { paymentRequired: !paymentRequired });
+            const res = await axios.put(`${API_URL}/api/settings`, { paymentRequired: !paymentRequired }, adminHeaders);
             setPaymentRequired(res.data.paymentRequired);
-            alert(`🚀 SYSTEM UPDATED: Academy is now ${!paymentRequired ? 'FREE' : 'PAID'}`);
+            
+            if (!paymentRequired) {
+                alert("☢️ SYSTEM ARMED: Everyone disapproved. Use 'Approve' to grant 2-min access.");
+            } else {
+                alert("🔓 SYSTEM OPENED: Expiry timers disabled. Everyone watches free.");
+            }
+            fetchStudents(); // Instantly refresh table to show everyone as PENDING
         } catch (e) { alert("System Update Failed"); }
     };
 
@@ -160,14 +183,13 @@ const Admin = () => {
         e.preventDefault();
         setUploading(true);
         try {
-            await axios.post(`${API_URL}/api/videos/upload`, videoData);
+            await axios.post(`${API_URL}/api/videos/upload`, videoData, adminHeaders);
             alert("🚀 INTEL PUBLISHED TO VAULT!");
             setVideoData({ title: '', videoId: '', description: '', category: 'Maths' });
         } catch (e) { alert("Upload Failed"); }
         finally { setUploading(false); }
     };
 
-    // 🆕 MASS EMAIL COPY UTILITY
     const copyAllEmails = () => {
         const emails = students.map(s => s.email).filter(Boolean).join(', ');
         navigator.clipboard.writeText(emails);
@@ -200,18 +222,16 @@ const Admin = () => {
 
     return (
         <div style={styles.dashboardContainer} onClick={resetTimers}>
-            {/* ⚠️ SESSION INACTIVITY WARNING */}
             {sessionWarning && (
                 <div style={styles.warningBanner}>
                     ⚠️ SESSION EXPIRING IN 1 MINUTE DUE TO INACTIVITY. MOVE MOUSE TO CANCEL.
                 </div>
             )}
 
-            {/* 🛰️ TOP NAV BAR */}
             <header style={styles.topNav}>
                 <div>
                     <h1 style={styles.navLogo}>CITADEL <span style={{color:'#ffd700'}}>ADMIN</span></h1>
-                    <p style={styles.navSub}>Maro Academy Operations Center v7.1.0</p>
+                    <p style={styles.navSub}>Maro Academy Operations Center v7.2.0</p>
                 </div>
                 <div style={styles.navActions}>
                     <div style={styles.liveIndicator}>
@@ -222,7 +242,6 @@ const Admin = () => {
                 </div>
             </header>
 
-            {/* 📊 ANALYTICS TILES */}
             <div style={styles.statsGrid}>
                 <div style={styles.statCard}>
                     <span style={styles.statLabel}>TOTAL ACADEMICS</span>
@@ -242,7 +261,6 @@ const Admin = () => {
                 </div>
             </div>
 
-            {/* 🎛️ CONTROL PANEL & STUDENT TABLE */}
             <div style={styles.mainGrid}>
                 <section style={styles.tableSection}>
                     <div style={styles.tableHeader}>
@@ -294,7 +312,13 @@ const Admin = () => {
                                                 </span>
                                             </td>
                                             <td style={styles.tdDate}>{s.firstLoginDate ? new Date(s.firstLoginDate).toLocaleDateString() : 'N/A'}</td>
-                                            <td style={styles.tdDate}>{s.expiryDate ? new Date(s.expiryDate).toLocaleDateString() : 'N/A'}</td>
+                                            {/* 🛠️ UPDATED: Show exact Minutes & Seconds when in Restricted Mode */}
+                                            <td style={styles.tdDate}>
+                                                {s.expiryDate && s.isPaid 
+                                                    ? new Date(s.expiryDate).toLocaleTimeString() 
+                                                    : 'N/A'
+                                                }
+                                            </td>
                                             <td>
                                                 <button 
                                                     onClick={() => toggleApproval(s._id)}
@@ -312,19 +336,18 @@ const Admin = () => {
                     </div>
                 </section>
 
-                {/* 🛡️ SIDEBAR CONTROLS */}
                 <aside style={styles.sidebar}>
                     <div style={styles.configCard}>
                         <h3 style={styles.cardTitle}>SYSTEM CONFIG</h3>
                         <p style={styles.cardInfo}>Global Watch Free Toggle</p>
                         <button 
                             onClick={togglePaymentMode} 
-                            style={{...styles.toggleBtn, background: !paymentRequired ? '#28a745' : '#ff4d4d'}}
+                            style={{...styles.toggleBtn, background: !paymentRequired ? '#ff4d4d' : '#28a745'}}
                         >
-                            {!paymentRequired ? '🔓 FREE ACCESS ACTIVE' : '🔒 RESTRICTED MODE'}
+                            {!paymentRequired ? '🔒 RESTRICTED MODE' : '🔓 WATCH FREE'}
                         </button>
-                        <p style={{fontSize:'0.65rem', marginTop:'10px', color: !paymentRequired ? '#28a745' : '#ff4d4d'}}>
-                            {paymentRequired ? '*Students must pay to watch' : '*All students can watch for free'}
+                        <p style={{fontSize:'0.65rem', marginTop:'10px', color: !paymentRequired ? '#ff4d4d' : '#28a745'}}>
+                            {!paymentRequired ? '*System armed. Tap Approve to start 2-min timer.' : '*All students can watch freely.'}
                         </p>
                     </div>
 
@@ -358,10 +381,9 @@ const Admin = () => {
 };
 
 // =============================================
-// 🎨 THE CITADEL DESIGN SYSTEM (Expanded v7.1)
+// 🎨 THE CITADEL DESIGN SYSTEM (Expanded v7.2)
 // =============================================
 const styles = {
-    // AUTH STYLES
     authContainer: { height: '100vh', background: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' },
     authCard: { background: '#0a0a0a', padding: '60px', borderRadius: '30px', border: '1px solid #111', textAlign: 'center', width: '100%', maxWidth: '450px' },
     authIcon: { fontSize: '3rem', marginBottom: '10px' },
@@ -371,7 +393,6 @@ const styles = {
     authBtn: { width: '100%', padding: '15px', marginTop: '20px', background: '#ffd700', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', transition: '0.3s' },
     errorText: { color: '#ff4d4d', fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold' },
     
-    // DASHBOARD LAYOUT
     dashboardContainer: { minHeight: '100vh', background: '#f4f7f6', paddingBottom: '50px', fontFamily: 'Inter, system-ui' },
     warningBanner: { background: '#ff4d4d', color: 'white', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.9rem', position: 'sticky', top: 0, zIndex: 1000, letterSpacing: '1px' },
     topNav: { background: '#000', color: '#fff', padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' },
@@ -383,13 +404,11 @@ const styles = {
     lockBtn: { background: '#ff4d4d', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
     copyBtn: { background: 'transparent', border: '1px solid #555', color: '#fff', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' },
 
-    // STATS GRID
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', padding: '30px 40px' },
     statCard: { background: '#fff', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s' },
     statLabel: { fontSize: '0.7rem', color: '#888', fontWeight: 'bold', letterSpacing: '1px' },
     statValue: { fontSize: '2rem', fontWeight: '900', color: '#111' },
 
-    // MAIN CONTENT AREA
     mainGrid: { display: 'flex', gap: '30px', padding: '0 40px' },
     tableSection: { flex: 3, background: '#fff', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', overflow: 'hidden' },
     tableHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' },
@@ -398,7 +417,6 @@ const styles = {
     searchInput: { padding: '10px 15px', borderRadius: '8px', border: '1px solid #ddd', width: '250px', outline: 'none' },
     selectInput: { padding: '10px', borderRadius: '8px', border: '1px solid #ddd', outline: 'none' },
 
-    // TABLE STYLES
     tableWrapper: { overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse' },
     tableHeadRow: { textAlign: 'left', borderBottom: '2px solid #f0f0f0', color: '#888', fontSize: '0.75rem' },
@@ -408,12 +426,10 @@ const styles = {
     badge: { padding: '4px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold' },
     actionBtn: { border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' },
 
-    // SKELETON LOADING
     skeletonContainer: { width: '100%' },
     skeletonRow: { height: '50px', marginBottom: '15px', backgroundColor: '#f0f0f0', borderRadius: '8px', overflow: 'hidden' },
     skeletonBlock: { width: '100%', height: '100%', background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.5s infinite' },
 
-    // SIDEBAR STYLES
     sidebar: { flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '300px' },
     configCard: { background: '#fff', padding: '25px', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' },
     cardTitle: { fontSize: '0.9rem', margin: '0 0 10px', fontWeight: 'bold' },
