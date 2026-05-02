@@ -579,4 +579,4 @@ mongoose.connect(MONGO_URI).then(() => {
 }).catch(err => {
     console.error("CRITICAL: DATABASE CONNECTION FAILED!", err);
     process.exit(1);
-})
+});
