@@ -230,15 +230,17 @@ const VideoVault = ({ user }) => {
   // 🛠️ MIGHTY HANDLERS
   // ===============================
   const togglePlayback = () => {
-    if (!playerRef.current) return;
-    if (typeof playerRef.current.getPlayerState !== 'function') return;
-    const state = playerRef.current.getPlayerState();
-    if (state === window.YT.PlayerState.PLAYING) {
-      playerRef.current.pauseVideo();
-    } else {
-      playerRef.current.playVideo();
-    }
-  };
+  if (!playerRef.current) return;
+
+  const state = playerRef.current.getPlayerState();
+
+  if (state === window.YT.PlayerState.PLAYING) {
+    playerRef.current.pauseVideo();
+  } else {
+    handleFullscreen(); // 🔥 THIS LINE IS THE MAGIC
+    playerRef.current.playVideo();
+  }
+};
 
   const handleSkip = (delta) => {
     if (!playerRef.current || videoEnded) return;
@@ -256,22 +258,34 @@ const VideoVault = ({ user }) => {
   };
 
   // 🆕 FULLSCREEN HANDLER
-  const handleFullscreen = () => {
-    const wrapper = document.getElementById('player-wrapper');
-    if (!wrapper) return;
-    if (wrapper.requestFullscreen) {
-      wrapper.requestFullscreen();
-    } else if (wrapper.webkitRequestFullscreen) {
-      wrapper.webkitRequestFullscreen();
-    } else if (wrapper.mozRequestFullScreen) {
-      wrapper.mozRequestFullScreen();
-    } else if (wrapper.msRequestFullscreen) {
-      wrapper.msRequestFullscreen();
+const handleFullscreen = () => {
+  const wrapper = document.getElementById('player-wrapper');
+  if (!wrapper) return;
+
+  // Standard fullscreen
+  if (wrapper.requestFullscreen) {
+    wrapper.requestFullscreen();
+  } else if (wrapper.webkitRequestFullscreen) {
+    wrapper.webkitRequestFullscreen();
+  } else if (wrapper.msRequestFullscreen) {
+    wrapper.msRequestFullscreen();
+  }
+
+  // Force landscape on mobile
+  if (screen.orientation?.lock) {
+    screen.orientation.lock('landscape').catch(() => {});
+  }
+
+  // Try iframe fullscreen too
+  if (playerRef.current?.getIframe) {
+    const iframe = playerRef.current.getIframe();
+    if (iframe.requestFullscreen) {
+      iframe.requestFullscreen();
+    } else if (iframe.webkitRequestFullscreen) {
+      iframe.webkitRequestFullscreen();
     }
-    if (window.screen.orientation && window.screen.orientation.lock) {
-      window.screen.orientation.lock('landscape').catch(() => {});
-    }
-  };
+  }
+};
 
   if (loading) return (
     <div style={styles.loadingWrapper}>
@@ -464,7 +478,7 @@ const styles = {
     paddingBottom: '62%',
     background: '#000',
     borderRadius: '24px',
-    overflow: 'visible',  // ← CHANGED FROM hidden TO visible!
+    overflow: 'hidden',  // ← CHANGED FROM hidden TO visible!
     boxShadow: '0 30px 60px rgba(0,0,0,0.7)',
     border: '1px solid #111',
   },
