@@ -54,6 +54,9 @@ const VideoVault = ({ user }) => {
   // ===============================
   // ⚡ 🆕 REAL-TIME SOCKETS (Admin Commands)
   // ===============================
+   // ===============================
+  // ⚡ REAL-TIME SOCKETS (Admin Commands - NUCLEAR KICK EDITION)
+  // ===============================
   useEffect(() => {
     if (!user) return;
     
@@ -67,37 +70,39 @@ const VideoVault = ({ user }) => {
       socket.emit('init_vault_session', user._id);
     });
 
-    // ✅ FIX: Listen for Admin switching modes
+    // 🛡️ THE NUCLEAR KICK FUNCTION (Hard refresh guaranteed)
+    const handleInstantKick = (reason) => {
+      localStorage.removeItem('maroToken');
+      localStorage.removeItem('maroUser');
+      // window.location.replace destroys React and forces a real page load
+      window.location.replace(`/login?reason=${encodeURIComponent(reason)}`);
+    };
+
+    // Listen for Admin switching modes
     socket.on('system_broadcast', (data) => {
       if (data.payment === false) {
         // Admin switched to FREE MODE
-        setIsFreeMode(true); // Instantly stops the 1-second expiry checker
+        setIsFreeMode(true); 
       } else if (data.payment === true) {
-        // Admin switched to PAID MODE (Locked everyone)
-        localStorage.removeItem('maroToken');
-        localStorage.removeItem('maroUser');
-        navigate('/access-denied', { state: { expired: true, reason: 'System locked by admin.' } });
+        // ☢️ Admin switched to PAID MODE: Kick them immediately
+        handleInstantKick('System locked by Admin. Login again.');
       }
     });
 
-    // Listen for Admin revoking access or system locks
+    // Listen for direct Admin kicks
     socket.on('force_disconnect', (data) => {
-      localStorage.removeItem('maroToken');
-      localStorage.removeItem('maroUser');
-      navigate('/access-denied', { state: { expired: true, reason: data.reason } });
+      handleInstantKick(data.reason || 'Access revoked.');
     });
 
     // Listen for 2-minute timer burning out
     socket.on('security_alert', (data) => {
       if (data.type === 'EXPIRED') {
-        localStorage.removeItem('maroToken');
-        localStorage.removeItem('maroUser');
-        navigate('/access-denied', { state: { expired: true, reason: data.message } });
+        handleInstantKick(data.message);
       }
     });
 
     return () => socket.disconnect();
-  }, [user, navigate]);
+  }, [user]); // ✅ Removed 'navigate' dependency because we don't use it anymore
 
   // ===============================
   // ⏰ MIGHTY EXPIRY WATCHER (FIXED)
