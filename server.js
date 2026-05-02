@@ -513,7 +513,26 @@ io.on('connection', (socket) => {
         console.log('Student left the secure session.');
     });
 });
-
+// =============================================
+// 🚨 TEMPORARY EMERGENCY FIX (DELETE AFTER RUNNING!)
+// =============================================
+app.get('/api/temp-migrate-passwords', async (req, res) => {
+    try {
+        const users = await User.find().select('+password');
+        let migratedCount = 0;
+        for (let user of users) {
+            if (user.password && !user.password.startsWith('$2')) {
+                const salt = await bcrypt.genSalt(10);
+                user.password = await bcrypt.hash(user.password, salt);
+                await user.save();
+                migratedCount++;
+            }
+        }
+        res.status(200).json({ message: `✅ SUCCESS: Migrated ${migratedCount} passwords.` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 app.get('/system-check', (req, res) => {
     res.status(200).json({
         engine: "Maro-V6.3",
