@@ -1,7 +1,15 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+/**
+ * MARO ACADEMY GLOBAL - THE INFINITE GUARDIAN
+ * VERSION: 6.0.0 (WebSocket & Enterprise Guard)
+ * FEATURES: Socket.io Integration, Session Tracking, Anti-Tamper Logic
+ */
 
-// 🚀 LAZY LOADING
+import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
+import { io } from 'socket.io-client'; // Install this: npm install socket.io-client
+
+// 🚀 LAZY LOADING (Performance Optimization)
 const Register = lazy(() => import('./Register'));
 const Admin = lazy(() => import('./Admin'));
 const Login = lazy(() => import('./Login'));
@@ -12,122 +20,196 @@ const BrowserWarning = lazy(() => import('./BrowserWarning'));
 // 🌐 CONFIG
 const API_URL = "https://maro-academy-v2.onrender.com";
 
+// =============================================
+// 🛡️ ADVANCED ROUTE GUARD COMPONENT
+// =============================================
+const PrivateGuard = ({ children, user, paymentRequired }) => {
+    if (!paymentRequired) return children;
+    if (!user) return <Navigate to="/login" replace />;
+    if (!user.isPaid) return <Navigate to="/access-denied" replace />;
+    return children;
+};
+
 function App() {
-  // 🔐 INITIAL STATE
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('maroUser');
-    return saved ? JSON.parse(saved) : null;
-  });
+    // 🔐 PERSISTENT STATES
+    const [user, setUser] = useState(() => {
+        const saved = localStorage.getItem('maroUser');
+        return saved ? JSON.parse(saved) : null;
+    });
 
-  const [paymentRequired, setPaymentRequired] = useState(() => {
-    const mode = localStorage.getItem('paymentRequired');
-    return mode ? JSON.parse(mode) : false;
-  });
+    const [paymentRequired, setPaymentRequired] = useState(() => {
+        const mode = localStorage.getItem('paymentRequired');
+        return mode ? JSON.parse(mode) : false;
+    });
 
-  // ===============================
-  // 🌐 SYNC PAYMENT MODE ON LOAD
-  // ===============================
-  useEffect(() => {
-    const fetchPaymentMode = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/settings`);
-        const data = await res.json();
-        setPaymentRequired(data.paymentRequired);
-        localStorage.setItem('paymentRequired', JSON.stringify(data.paymentRequired));
-      } catch (error) {
-        console.error("Could not fetch payment mode", error);
-      }
-    };
-    fetchPaymentMode();
-  }, []);
+    const [systemNotice, setSystemNotice] = useState("");
+    const [socketConnected, setSocketConnected] = useState(false);
 
-  // ===============================
-  // 🛡️ MIGHTY GLOBAL EXPIRY GUARD
-  // Kicks from ANY page & syncs Admin instantly!
-  // ===============================
-  useEffect(() => {
-    const globalWatcher = setInterval(async () => {
-      if (!user || !user.expiryDate) return;
-
-      const now = new Date();
-      const expiry = new Date(user.expiryDate);
-
-      if (now > expiry) {
-        console.log("🔴 GLOBAL EXPIRY: Kicking out now! GBAMA! 💥");
-        
-        try {
-          // Sync with Admin Dashboard using individual ID
-          await fetch(`${API_URL}/api/students/auto-expire/${user._id}`, {
-            method: 'PUT'
-          });
-        } catch (e) {
-          console.error("Admin sync failed", e);
-        }
-
-        // Clear local session and force redirect
+    // =============================================
+    // ⚡ ACTION: THE GLOBAL KILL-SWITCH
+    // =============================================
+    const handleKick = useCallback((reason = "security_violation") => {
+        console.warn(`[SECURITY ALERT] Kicking user: ${reason}`);
         localStorage.removeItem('maroUser');
         setUser(null);
-        window.location.href = '/access-denied?expired=true';
-      }
-    }, 1000); // Super fast 1-second check
+        // Using window.location to ensure state is completely wiped
+        window.location.href = `/access-denied?reason=${reason}`;
+    }, []);
 
-    return () => clearInterval(globalWatcher);
-  }, [user]);
+    // =============================================
+    // 📡 WEBSOCKET ENGINE (The Real-Time Guard)
+    // =============================================
+    useEffect(() => {
+        const socket = io(API_URL, {
+            transports: ['websocket'],
+            reconnectionAttempts: 5
+        });
 
-  // ===============================
-  // 🛠️ HELPERS
-  // ===============================
-  const isSubscriptionExpired = (userData) => {
-    if (!userData || !userData.expiryDate) return false;
-    return new Date() > new Date(userData.expiryDate);
-  };
+        socket.on('connect', () => {
+            setSocketConnected(true);
+            console.log("⚡ Secure Link Established with Citadel.");
+            if (user?._id) {
+                socket.emit('init_vault_session', user._id);
+            }
+        });
 
-  const handleLogin = (userData) => {
-    setUser(userData);
-    localStorage.setItem('maroUser', JSON.stringify(userData));
-  };
+        // 🟢 LISTEN: Global Settings Changes
+        socket.on('system_broadcast', (data) => {
+            setPaymentRequired(data.payment);
+            setSystemNotice(data.notice);
+            localStorage.setItem('paymentRequired', JSON.stringify(data.payment));
+            
+            if (data.maintenance) {
+                handleKick("maintenance");
+            }
+        });
 
-  // ===============================
-  // 🏛️ THE MIGHTY ROUTER
-  // ===============================
-  return (
-    <Router>
-      <div className="min-h-screen bg-gray-100">
-        <Suspense fallback={<div style={{textAlign: 'center', padding: '50px'}}>Loading Maro Academy... 🦾</div>}>
-          <Routes>
-            <Route path="/" element={<Register />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login setUser={handleLogin} />} />
-            <Route path="/access-denied" element={<AccessDenied />} />
-            <Route path="/browser-warning" element={<BrowserWarning />} />
+        // 🔴 LISTEN: Individual Kick (Payment Revoked or Expired)
+        socket.on('security_alert', (data) => {
+            handleKick(data.type.toLowerCase());
+        });
 
-            {/* 🎬 PROTECTED VIDEO VAULT */}
-            <Route
-              path="/video-vault"
-              element={
-                !paymentRequired ? (
-                  <VideoVault user={user} />
-                ) : user ? (
-                  isSubscriptionExpired(user) ? (
-                    <Navigate to="/access-denied" state={{ expired: true }} />
-                  ) : user.isPaid ? (
-                    <VideoVault user={user} />
-                  ) : (
-                    <Navigate to="/access-denied" />
-                  )
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
+        socket.on('force_disconnect', () => {
+            handleKick("admin_revoked");
+        });
 
-            <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </div>
-    </Router>
-  );
+        socket.on('disconnect', () => setSocketConnected(false));
+
+        return () => socket.disconnect();
+    }, [user, handleKick]);
+
+    // =============================================
+    // 🏛️ REFRESH SYNC (The Backup Guard)
+    // =============================================
+    const syncStatus = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_URL}/api/system/settings`);
+            setPaymentRequired(res.data.paymentRequired);
+            
+            if (user) {
+                // Periodically check if user still exists/is paid in DB
+                const userRes = await axios.get(`${API_URL}/api/students/${user._id}`, {
+                    headers: { 'user-id': user._id }
+                }).catch(() => null);
+
+                if (userRes && !userRes.data.isPaid && res.data.paymentRequired) {
+                    handleKick("unpaid_status");
+                }
+            }
+        } catch (e) {
+            console.error("Shield sync lag...");
+        }
+    }, [user, handleKick]);
+
+    useEffect(() => {
+        syncStatus();
+        const backupCheck = setInterval(syncStatus, 30000); // Only every 30s as backup to Socket
+        return () => clearInterval(backupCheck);
+    }, [syncStatus]);
+
+    // =============================================
+    // 🔑 AUTH HANDLERS
+    // =============================================
+    const handleLogin = (userData) => {
+        setUser(userData);
+        localStorage.setItem('maroUser', JSON.stringify(userData));
+    };
+
+    // =============================================
+    // 🎨 UI COMPONENTS
+    // =============================================
+    const LoadingScreen = useMemo(() => (
+        <div className="flex flex-col items-center justify-center h-screen bg-black font-mono">
+            <div className="relative">
+                <div className="animate-spin rounded-full h-24 w-24 border-b-2 border-green-500"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-green-500 text-xs">MARO</span>
+                </div>
+            </div>
+            <h2 className="mt-8 text-green-500 tracking-[0.5em] animate-pulse">
+                INITIALIZING CITADEL...
+            </h2>
+            <p className="mt-2 text-gray-600 text-[10px]">VERIFYING ENCRYPTION KEYS</p>
+        </div>
+    ), []);
+
+    return (
+        <Router>
+            <div className="min-h-screen bg-[#050505] text-white selection:bg-green-500 selection:text-black">
+                <Suspense fallback={LoadingScreen}>
+                    <Routes>
+                        {/* PUBLIC ACCESS */}
+                        <Route path="/" element={<Navigate to="/register" replace />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/login" element={<Login setUser={handleLogin} />} />
+                        <Route path="/access-denied" element={<AccessDenied />} />
+                        <Route path="/browser-warning" element={<BrowserWarning />} />
+
+                        {/* 🎬 SECURE VIDEO VAULT */}
+                        <Route 
+                            path="/video-vault" 
+                            element={
+                                <PrivateGuard user={user} paymentRequired={paymentRequired}>
+                                    <VideoVault user={user} />
+                                </PrivateGuard>
+                            } 
+                        />
+
+                        {/* 🔑 ADMIN OVERRIDE */}
+                        <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
+
+                        {/* FALLBACK */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </Suspense>
+
+                {/* 🛡️ REAL-TIME SYSTEM MONITOR */}
+                <footer className="fixed bottom-0 w-full z-50">
+                    {systemNotice && (
+                        <div className="bg-green-600 text-black text-center py-1 text-xs font-bold uppercase tracking-widest">
+                            📢 {systemNotice}
+                        </div>
+                    )}
+                    <div className="bg-black/80 backdrop-blur-md border-t border-white/5 py-2 px-4 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-green-500 shadow-[0_0_10px_green]' : 'bg-red-500 animate-pulse'}`}></div>
+                            <span className="text-[9px] uppercase tracking-tighter text-gray-500">
+                                {socketConnected ? 'Citadel Linked' : 'Link Interrupted'}
+                            </span>
+                        </div>
+                        {user && (
+                            <div className="text-[9px] text-gray-500 font-mono">
+                                SESSION_ID: {user._id.substring(0, 8)}... | SECURITY_LEVEL: HIGH
+                            </div>
+                        )}
+                        <div className="text-[9px] text-gray-600">
+                            © 2026 MARO ACADEMY GLOBAL
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </Router>
+    );
 }
 
 export default App;
