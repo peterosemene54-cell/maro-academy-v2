@@ -54,6 +54,34 @@ function App() {
     };
     fetchPaymentMode();
   }, []);
+  // 🛡️ GLOBAL EXPIRY GUARD (Kicks out from ANY page!)
+  useEffect(() => {
+    const globalWatcher = setInterval(async () => {
+      if (!user || !user.expiryDate) return;
+
+      const now = new Date();
+      const expiry = new Date(user.expiryDate);
+
+      if (now > expiry) {
+        console.log("🔴 GLOBAL EXPIRY: Access Revoked!");
+        
+        try {
+          // Sync with Admin Dashboard immediately using ID
+          await fetch(`https://onrender.com{user._id}`, {
+            method: 'PUT'
+          });
+        } catch (e) {
+          console.error("Admin sync failed", e);
+        }
+
+        // Clear local session and kick
+        localStorage.removeItem('maroUser');
+        window.location.href = '/access-denied?expired=true';
+      }
+    }, 1000); 
+
+    return () => clearInterval(globalWatcher);
+  }, [user]);
 
   // ⏰ CHECK IF SUBSCRIPTION HAS EXPIRED
   const isSubscriptionExpired = (user) => {
