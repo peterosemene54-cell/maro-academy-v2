@@ -269,9 +269,11 @@ const VideoVault = ({ user }) => {
       wrapper.msRequestFullscreen();
     }
     // Also try to lock screen to landscape on mobile!
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(() => {});
-    }
+    // DELETE THESE 3 LINES:
+// SAFE VERSION:
+if (window.screen.orientation && window.screen.orientation.lock) {
+  window.screen.orientation.lock('landscape').catch(() => {});
+}
   };
 
   if (loading) return (
