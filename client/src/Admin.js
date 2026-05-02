@@ -16,6 +16,9 @@ const API_URL = "https://maro-academy-v2.onrender.com";
 const _p = [77, 97, 114, 111, 65, 100, 109, 105, 110, 50, 48, 50, 54];
 const ADMIN_PASSWORD = String.fromCharCode(..._p);
 
+// 🛠️ SECURE HEADERS (Moved outside to fix Vercel lint error)
+const adminHeaders = { headers: { 'x-admin-key': ADMIN_PASSWORD } };
+
 const Admin = () => {
     // =============================================
     // 🔐 AUTH & CORE STATE
@@ -41,9 +44,6 @@ const Admin = () => {
     // ⏱️ INACTIVITY TIMER
     const inactivityTimerRef = useRef(null);
     const warningTimerRef = useRef(null);
-
-    // 🛠️ Secure Headers
-    const adminHeaders = { headers: { 'x-admin-key': ADMIN_PASSWORD } };
 
     // =============================================
     // 🛠️ DATA FETCHING & SYNC
