@@ -37,6 +37,10 @@ const VideoVault = ({ user }) => {
   // ⏰ MIGHTY EXPIRY WATCHER
   // Checks every 5 seconds — kicks instantly!
   // ===============================
+   // ===============================
+  // ⏰ MIGHTY EXPIRY WATCHER
+  // Checks every 5 seconds — kicks ONLY the expired person!
+  // ===============================
   useEffect(() => {
     const checkExpiry = async () => {
       const savedUser = localStorage.getItem('maroUser');
@@ -46,31 +50,33 @@ const VideoVault = ({ user }) => {
       }
 
       const userData = JSON.parse(savedUser);
-      if (!userData.expiryDate) return;
+      // We check specifically for THIS user's data
+      if (!userData.expiryDate || !userData._id) return;
 
       const now = new Date();
       const expiry = new Date(userData.expiryDate);
 
       if (now > expiry) {
-        console.log("🔴 EXPIRED! Kicking out NOW! GBAMA! 💥");
+        console.log("🔴 EXPIRED! Kicking you out! GBAMA! 💥");
 
         try {
-          await axios.put(`${API_URL}/api/students/auto-expire`);
-          console.log("✅ Admin table flipped to PENDING!");
+          // ✅ FIX: Only update THIS specific student using their ID
+          await axios.put(`${API_URL}/api/students/auto-expire/${userData._id}`);
+          console.log("✅ Your status flipped to PENDING!");
         } catch (e) {
-          console.error("Could not update admin", e);
+          console.error("Could not update individual status", e);
         }
 
         localStorage.removeItem('maroUser');
         navigate('/access-denied', { state: { expired: true } });
       }
-    };
+    }; // This closes checkExpiry
 
     checkExpiry();
-    const expiryWatcher = setInterval(checkExpiry, 5 * 1000);
+    const expiryWatcher = setInterval(checkExpiry,1000);
     return () => clearInterval(expiryWatcher);
+  }, [navigate]); // This closes the useEffect
 
-  }, [navigate]);
 
   // ===============================
   // 🛡️ SECURITY & RESPONSIVENESS
