@@ -1,6 +1,6 @@
 /**
  * MARO ACADEMY GLOBAL - THE INFINITE GUARDIAN
- * VERSION: 6.0.0 (WebSocket & Enterprise Guard)
+ * VERSION: 6.2.0 (WebSocket & Enterprise Guard)
  * FEATURES: Socket.io Integration, Session Tracking, Anti-Tamper Logic
  */
 
@@ -51,6 +51,7 @@ function App() {
     const handleKick = useCallback((reason = "security_violation") => {
         console.warn(`[SECURITY ALERT] Kicking user: ${reason}`);
         localStorage.removeItem('maroUser');
+        localStorage.removeItem('maroToken'); // 🛡️ ADDED: Clear token on kick
         setUser(null);
         // Using window.location to ensure state is completely wiped
         window.location.href = `/access-denied?reason=${reason}`;
@@ -106,18 +107,29 @@ function App() {
             const res = await axios.get(`${API_URL}/api/system/settings`);
             setPaymentRequired(res.data.paymentRequired);
             
-            if (user) {
-                // Periodically check if user still exists/is paid in DB
-                const userRes = await axios.get(`${API_URL}/api/students/${user._id}`, {
-                    headers: { 'user-id': user._id }
-                }).catch(() => null);
-
-                if (userRes && !userRes.data.isPaid && res.data.paymentRequired) {
-                    handleKick("unpaid_status");
+            if (user && res.data.paymentRequired) {
+                // 🛡️ UPDATED: Heartbeat check using the new secure vault route
+                const token = localStorage.getItem('maroToken');
+                
+                // If token is missing entirely, kick them
+                if (!token) {
+                    handleKick("missing_token");
+                    return;
                 }
+
+                // Ping the backend with the token. If admin revoked them, the token is destroyed,
+                // and the backend will throw a 401/403 error, triggering the catch block below.
+                await axios.get(`${API_URL}/api/videos`, {
+                    headers: { 'x-vault-token': token }
+                });
             }
         } catch (e) {
-            console.error("Shield sync lag...");
+            // Only kick them if the backend explicitly rejected their token
+            if (e.response && [401, 402, 403].includes(e.response.status)) {
+                handleKick("unpaid_status");
+            } else {
+                console.error("Shield sync lag...");
+            }
         }
     }, [user, handleKick]);
 

@@ -125,7 +125,13 @@ const VideoVault = ({ user }) => {
       return;
     }
     try {
-      const response = await axios.get(`${API_URL}/api/videos`);
+      // 🛡️ ADDED: Grab the secure token from Login
+      const token = localStorage.getItem('maroToken');
+      const headers = token ? { 'x-vault-token': token } : {};
+      
+      // 🛡️ ADDED: Send token in the headers to the backend
+      const response = await axios.get(`${API_URL}/api/videos`, { headers });
+      
       const data = response.data;
       setVideos(data);
       if (data.length > 0) {
@@ -134,7 +140,14 @@ const VideoVault = ({ user }) => {
       setTimeout(() => setLoading(false), 1200);
     } catch (error) {
       console.error("🚨 VAULT ERROR:", error);
-      setLoading(false);
+      // 🛡️ ADDED: If backend rejects the token, kick them out
+      if (error.response && (error.response.status === 401 || error.response.status === 403 || error.response.status === 402)) {
+        localStorage.removeItem('maroToken');
+        localStorage.removeItem('maroUser');
+        navigate('/access-denied', { state: { expired: true } });
+      } else {
+        setLoading(false);
+      }
     }
   }, [user, navigate]);
 

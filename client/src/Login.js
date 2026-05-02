@@ -1,10 +1,10 @@
 /**
  * MARO ACADEMY GLOBAL - THE SENTINEL LOGIN
- * VERSION: 6.0.0 (Heavy Duty Edition)
- * FEATURES: Dark Mode UI, Error Mapping, Auto-Redirection logic
+ * VERSION: 6.2.0 (Hardened Token Edition)
+ * FEATURES: Dark Mode UI, Error Mapping, Secure Token Capture, Auto-Redirection logic
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -17,10 +17,18 @@ const Login = ({ setUser }) => {
     
     const navigate = useNavigate();
     const location = useLocation();
+    const emailInputRef = useRef(null); // 🛠️ ADDED: For auto-focus
 
     // UI Feedback for users redirected from the "Kick" system
     const queryParams = new URLSearchParams(location.search);
     const reason = queryParams.get('reason');
+
+    // 🛠️ ADDED: Auto-focus email input on page load
+    useEffect(() => {
+        if (emailInputRef.current) {
+            emailInputRef.current.focus();
+        }
+    }, []);
 
     // 🛡️ INPUT HANDLER
     const handleChange = (e) => {
@@ -28,7 +36,7 @@ const Login = ({ setUser }) => {
     };
 
     // =============================================
-    // 🚀 THE SECURE LOGIN LOGIC
+    // 🚀 THE SECURE LOGIN LOGIC (Updated for v6.2 Backend)
     // =============================================
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -43,12 +51,31 @@ const Login = ({ setUser }) => {
             
             const loggedInUser = res.data;
 
-            // 2. Local State & Storage Update
-            setUser(loggedInUser);
-            localStorage.setItem('maroUser', JSON.stringify(loggedInUser));
+            // 🛡️ CRITICAL FIX: Separate the secure session token from user data
+            const { sessionToken, ...userData } = loggedInUser;
 
-            // 3. Log Success & Divert to Vault
-            console.log("🛡️ CITADEL ACCESS GRANTED");
+            // 2. Clear old sessions to prevent ghost tokens
+            localStorage.removeItem('maroToken');
+
+            // 🛡️ CRITICAL FIX: Save the new Spoof-Proof Session Token
+            // This is what VideoVault will use to unlock the videos
+            if (sessionToken) {
+                localStorage.setItem('maroToken', sessionToken);
+            }
+
+            // 3. Pre-Vault Approval Check (UX Improvement)
+            // If payment isn't active, stop them here before they enter the vault
+            if (!userData.isPaid) {
+                setStatus({ loading: false, error: "✋ Access Granted, but Admin hasn't approved your payment yet. Contact Oga." });
+                return; // Stop the navigation
+            }
+
+            // 4. Local State & Storage Update
+            setUser(userData);
+            localStorage.setItem('maroUser', JSON.stringify(userData));
+
+            // 5. Log Success & Divert to Vault
+            console.log("🛡️ CITADEL ACCESS GRANTED - TOKEN SECURED");
             navigate("/video-vault");
 
         } catch (error) {
@@ -61,9 +88,12 @@ const Login = ({ setUser }) => {
             if (statusCode === 403) {
                 // Scenario: Account Expired (GBAMA! 💥)
                 navigate("/access-denied", { state: { expired: true } });
+            } else if (statusCode === 423) {
+                // 🛡️ ADDED: Scenario: IP Blacklisted by High Security Limiter
+                setStatus({ loading: false, error: "⛔ IP BLACKLISTED: Too many failed attempts. Wait 1 hour or change network." });
             } else if (statusCode === 429) {
-                // Scenario: Rate Limiter active
-                setStatus({ loading: false, error: "Too many attempts. You are temporarily blacklisted." });
+                // Scenario: Standard Rate Limiter active
+                setStatus({ loading: false, error: "⏳ System cooling down. Wait a few minutes." });
             } else {
                 setStatus({ loading: false, error: serverMessage || "Vault Unreachable. Check connection." });
             }
@@ -77,7 +107,7 @@ const Login = ({ setUser }) => {
                 <div style={styles.header}>
                     <div style={styles.iconBox}>🦾</div>
                     <h1 style={styles.title}>MARO ACADEMY</h1>
-                    <p style={styles.subtitle}>SECURE SENTINEL ACCESS v6.0</p>
+                    <p style={styles.subtitle}>SECURE SENTINEL ACCESS v6.2</p>
                 </div>
 
                 {/* 🚩 ALERTS & WARNINGS */}
@@ -98,6 +128,7 @@ const Login = ({ setUser }) => {
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>GMAIL ADDRESS</label>
                         <input 
+                            ref={emailInputRef} // 🛠️ ADDED: Auto-focus target
                             name="email"
                             type="email" 
                             placeholder="maro@example.com" 
@@ -177,6 +208,7 @@ const styles = {
         color: '#fff',
         outline: 'none',
         transition: '0.3s',
+        boxSizing: 'border-box' // 🛠️ ADDED: Prevents mobile overflow
     },
     button: {
         marginTop: '10px',
