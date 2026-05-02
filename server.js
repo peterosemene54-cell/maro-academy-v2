@@ -1,8 +1,7 @@
 /**
  * MARO ACADEMY GLOBAL - THE INFINITE CITADEL
- * VERSION: 6.3.0 (2-Minute Timer & Nuclear Switch Architecture)
- * DESCRIPTION: Full-scale backend with Socket.io, Instant Expiry Triggers, and Global Mode Switches.
- * GOAL: Unbreakable Logic.
+ * VERSION: 6.4.0 (FIXED: True Free Mode vs True Paid Mode)
+ * FIXES: Free mode now unlocks DB + Login no longer breaks 2-min timer
  */
 
 const express = require('express');
@@ -176,35 +175,39 @@ const checkVaultAccess = async (req, res, next) => {
             });
         }
 
-        if (settings.paymentRequired) {
-            const sessionToken = req.headers['x-vault-token'];
-            
-            if (!sessionToken) return res.status(401).json({ message: "Access Token Missing." });
-
-            const user = await User.findOne({ sessionToken }).select('+sessionToken +isPaid +expiryDate +accountStatus');
-            if (!user) return res.status(404).json({ message: "Identity not verified." });
-
-            if (!user.isPaid) {
-                return res.status(402).json({ message: "Subscription Inactive." });
-            }
-
-            // Real-time Expiry Sync
-            if (user.expiryDate && new Date() > new Date(user.expiryDate)) {
-                user.isPaid = false;
-                user.accountStatus = 'Expired';
-                user.sessionToken = null; 
-                await user.save();
-                
-                io.to(user._id.toString()).emit('security_alert', { 
-                    type: 'EXPIRED', 
-                    message: 'Your access has expired.' 
-                });
-
-                return res.status(403).json({ message: "Session Expired." });
-            }
-            
-            req.user = user; 
+        // ✅ FIX: If FREE MODE, skip ALL checks. No token, no isPaid, no expiry.
+        if (!settings.paymentRequired) {
+            return next(); 
         }
+
+        // ✅ FIX: Only run these checks in PAID MODE
+        const sessionToken = req.headers['x-vault-token'];
+        
+        if (!sessionToken) return res.status(401).json({ message: "Access Token Missing." });
+
+        const user = await User.findOne({ sessionToken }).select('+sessionToken +isPaid +expiryDate +accountStatus');
+        if (!user) return res.status(404).json({ message: "Identity not verified." });
+
+        if (!user.isPaid) {
+            return res.status(402).json({ message: "Subscription Inactive." });
+        }
+
+        // Real-time Expiry Sync
+        if (user.expiryDate && new Date() > new Date(user.expiryDate)) {
+            user.isPaid = false;
+            user.accountStatus = 'Expired';
+            user.sessionToken = null; 
+            await user.save();
+            
+            io.to(user._id.toString()).emit('security_alert', { 
+                type: 'EXPIRED', 
+                message: 'Your access has expired.' 
+            });
+
+            return res.status(403).json({ message: "Session Expired." });
+        }
+        
+        req.user = user; 
         next();
     } catch (error) {
         console.error("Critical Middleware Error:", error);
@@ -282,9 +285,10 @@ app.post('/api/login', highSecurityLimiter, async (req, res) => {
         user.lastActive = Date.now();
         user.deviceInfo = req.headers['user-agent'];
 
-        if (user.isPaid && !user.hasLoggedIn) {
+        // ✅ FIX: Removed the 30-day expiry override. 
+        // The ONLY place expiry should be set is the Admin Approve button (2-mins)
+        if (!user.hasLoggedIn) {
             user.hasLoggedIn = true;
-            user.expiryDate = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000));
         }
 
         const sessionToken = crypto.randomBytes(32).toString('hex');
@@ -321,21 +325,19 @@ app.get('/api/students', checkAdmin, async (req, res) => {
     }
 });
 
-// 🛠️ UPDATED: The 2-Minute Timer Approve/Revoke Switch
 app.put('/api/students/:id/approve', checkAdmin, async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ message: "User not found." });
 
-        // If Approving them
         if (!user.isPaid) {
             user.isPaid = true;
-            // 🛠️ SET EXACTLY 2 MINUTES FROM NOW FOR TESTING
+            user.accountStatus = 'Active';
+            // Exactly 2 minutes
             user.expiryDate = new Date(Date.now() + (2 * 60 * 1000)); 
-        } 
-        // If Revoking them
-        else {
+        } else {
             user.isPaid = false;
+            user.expiryDate = null;
             user.sessionToken = null; 
             io.to(user._id.toString()).emit('force_disconnect', { reason: 'Admin Revoked Access' });
         }
@@ -415,19 +417,28 @@ app.get('/api/settings', async (req, res) => {
     res.json(settings);
 });
 
-// 🛠️ UPDATED: The Nuclear Watch Free / Restricted Switch
+// ✅ THE ULTIMATE NUCLEAR SWITCH (FIXED BOTH WAYS)
 app.put('/api/settings', checkAdmin, async (req, res) => {
     try {
         const updated = await Setting.findOneAndUpdate({}, req.body, { new: true, upsert: true });
         
-        // ☢️ NUCLEAR OPTION: If switching to RESTRICTED mode, reset ALL students instantly
+        // ☢️ SWITCHING TO PAID MODE: Lock everyone out instantly
         if (updated.paymentRequired === true) {
             await User.updateMany(
                 { role: 'student' },
-                { $set: { isPaid: false, sessionToken: null } }
+                { $set: { isPaid: false, expiryDate: null, sessionToken: null } }
             );
-            console.log("☢️ RESTRICTED MODE: All access revoked globally.");
+            console.log("☢️ PAID MODE ARMED: All access revoked globally.");
             io.emit('force_disconnect', { reason: 'System switched to Restricted Mode' });
+        } 
+        
+        // 🔓 SWITCHING TO FREE MODE: Unlock everyone instantly, clear expiry forever
+        else if (updated.paymentRequired === false) {
+            await User.updateMany(
+                { role: 'student' },
+                { $set: { isPaid: true, expiryDate: null } } // No expiry date = they watch forever
+            );
+            console.log("🔓 FREE MODE OPENED: All access granted globally with no expiry.");
         }
         
         io.emit('system_broadcast', {
@@ -457,7 +468,6 @@ app.put('/api/system/settings', checkAdmin, async (req, res) => {
     }
 });
 
-// 🛠️ UPDATED: Instant Admin Flash on 2-Minute Expiry
 app.put('/api/students/auto-expire/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -467,9 +477,7 @@ app.put('/api/students/auto-expire/:id', async (req, res) => {
             user.sessionToken = null;
             await user.save();
             
-            // 🛠️ INSTANT ADMIN NOTIFICATION: Tell the Admin panel to refresh THIS specific user instantly
             io.emit('admin_user_expired', { userId: user._id });
-            
             res.json({ success: true });
         } else {
             res.status(400).json({ message: "Condition not met." });
@@ -513,9 +521,7 @@ io.on('connection', (socket) => {
         console.log('Student left the secure session.');
     });
 });
-// =============================================
-// 🚨 TEMPORARY EMERGENCY FIX (DELETE AFTER RUNNING!)
-// =============================================
+
 app.get('/api/temp-migrate-passwords', async (req, res) => {
     try {
         const users = await User.find().select('+password');
@@ -533,9 +539,10 @@ app.get('/api/temp-migrate-passwords', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 app.get('/system-check', (req, res) => {
     res.status(200).json({
-        engine: "Maro-V6.3",
+        engine: "Maro-V6.4",
         uptime: process.uptime(),
         memory: process.memoryUsage(),
         db_state: mongoose.connection.readyState === 1 ? 'Healthy' : 'Disconnected'
@@ -546,7 +553,7 @@ app.get('/', (req, res) => {
     res.send(`
         <div style="background:#000; color:#ffd700; font-family:monospace; padding:100px; text-align:center;">
             <h1 style="font-size:3rem;">⚡ MARO ACADEMY GLOBAL ⚡</h1>
-            <p style="color:#555;">CITADEL VERSION 6.3.0 | STATUS: 2-MIN TIMER ACTIVE</p>
+            <p style="color:#555;">CITADEL VERSION 6.4.0 | STATUS: UNBREAKABLE MODE LOGIC</p>
             <hr style="border:1px solid #222; width:50%;">
             <p>SOCKET ENGINE: ACTIVE</p>
             <p>DATABASE: CONNECTED</p>
@@ -572,7 +579,7 @@ mongoose.connect(MONGO_URI).then(() => {
         🔐  SECURITY LEVEL: MAXIMUM
         🔑  ENCRYPTION: BCRYPTJS ACTIVE
         ⏱️  TIMER: 2-MINUTE TESTING MODE
-        💎  VERSION: 6.3.0
+        💎  VERSION: 6.4.0 (FIXED FREE/PAID)
         ================================================
         `);
     });

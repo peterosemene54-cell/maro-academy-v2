@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client'; // 🆕 ADDED: For instant Admin kicks & mode switches
 
 const VideoVault = ({ user }) => {
   const [videos, setVideos] = useState([]);
@@ -9,8 +10,10 @@ const VideoVault = ({ user }) => {
   const [videoEnded, setVideoEnded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  // 🆕 NEW FULLSCREEN STATE
   const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // 🆕 ADDED: Tracks if system is in Free Mode (stops the expiry timer completely)
+  const [isFreeMode, setIsFreeMode] = useState(false);
 
   const navigate = useNavigate();
   const playerRef = useRef(null);
@@ -34,9 +37,75 @@ const VideoVault = ({ user }) => {
   }, [navigate]);
 
   // ===============================
-  // ⏰ MIGHTY EXPIRY WATCHER
+  // 🆕 FETCH GLOBAL SETTINGS ON MOUNT
   // ===============================
   useEffect(() => {
+    const fetchMode = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/settings`);
+        setIsFreeMode(!res.data.paymentRequired);
+      } catch (e) {
+        console.error("Could not fetch system mode");
+      }
+    };
+    fetchMode();
+  }, []);
+
+  // ===============================
+  // ⚡ 🆕 REAL-TIME SOCKETS (Admin Commands)
+  // ===============================
+  useEffect(() => {
+    if (!user) return;
+    
+    const socket = io(API_URL, { 
+      transports: ['websocket'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000
+    });
+
+    socket.on('connect', () => {
+      socket.emit('init_vault_session', user._id);
+    });
+
+    // ✅ FIX: Listen for Admin switching modes
+    socket.on('system_broadcast', (data) => {
+      if (data.payment === false) {
+        // Admin switched to FREE MODE
+        setIsFreeMode(true); // Instantly stops the 1-second expiry checker
+      } else if (data.payment === true) {
+        // Admin switched to PAID MODE (Locked everyone)
+        localStorage.removeItem('maroToken');
+        localStorage.removeItem('maroUser');
+        navigate('/access-denied', { state: { expired: true, reason: 'System locked by admin.' } });
+      }
+    });
+
+    // Listen for Admin revoking access or system locks
+    socket.on('force_disconnect', (data) => {
+      localStorage.removeItem('maroToken');
+      localStorage.removeItem('maroUser');
+      navigate('/access-denied', { state: { expired: true, reason: data.reason } });
+    });
+
+    // Listen for 2-minute timer burning out
+    socket.on('security_alert', (data) => {
+      if (data.type === 'EXPIRED') {
+        localStorage.removeItem('maroToken');
+        localStorage.removeItem('maroUser');
+        navigate('/access-denied', { state: { expired: true, reason: data.message } });
+      }
+    });
+
+    return () => socket.disconnect();
+  }, [user, navigate]);
+
+  // ===============================
+  // ⏰ MIGHTY EXPIRY WATCHER (FIXED)
+  // ===============================
+  useEffect(() => {
+    // ✅ FIX: If Free Mode is ON, destroy the timer completely. Let them watch forever.
+    if (isFreeMode) return;
+
     const checkExpiry = async () => {
       const savedUser = localStorage.getItem('maroUser');
       if (!savedUser) {
@@ -60,6 +129,7 @@ const VideoVault = ({ user }) => {
           console.error("Could not update individual status", e);
         }
 
+        localStorage.removeItem('maroToken');
         localStorage.removeItem('maroUser');
         navigate('/access-denied', { state: { expired: true } });
       }
@@ -68,7 +138,7 @@ const VideoVault = ({ user }) => {
     checkExpiry();
     const expiryWatcher = setInterval(checkExpiry, 1000);
     return () => clearInterval(expiryWatcher);
-  }, [navigate]);
+  }, [navigate, isFreeMode]); // 🆕 Added isFreeMode dependency
 
   // ===============================
   // 🛡️ SECURITY & RESPONSIVENESS
@@ -100,7 +170,7 @@ const VideoVault = ({ user }) => {
   }, []);
 
   // ===============================
-  // 📺 🆕 FULLSCREEN TRACKER
+  // 📺 FULLSCREEN TRACKER
   // ===============================
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -125,11 +195,9 @@ const VideoVault = ({ user }) => {
       return;
     }
     try {
-      // 🛡️ ADDED: Grab the secure token from Login
       const token = localStorage.getItem('maroToken');
       const headers = token ? { 'x-vault-token': token } : {};
       
-      // 🛡️ ADDED: Send token in the headers to the backend
       const response = await axios.get(`${API_URL}/api/videos`, { headers });
       
       const data = response.data;
@@ -140,7 +208,6 @@ const VideoVault = ({ user }) => {
       setTimeout(() => setLoading(false), 1200);
     } catch (error) {
       console.error("🚨 VAULT ERROR:", error);
-      // 🛡️ ADDED: If backend rejects the token, kick them out
       if (error.response && (error.response.status === 401 || error.response.status === 403 || error.response.status === 402)) {
         localStorage.removeItem('maroToken');
         localStorage.removeItem('maroUser');
@@ -165,8 +232,6 @@ const VideoVault = ({ user }) => {
       if (!window.YT || !window.YT.Player) { setTimeout(tryCreatePlayer, 100); return; }
       if (playerRef.current) return;
 
-      console.log("🏛️ CREATING PLAYER...");
-
       playerRef.current = new window.YT.Player(playerDivId, {
         videoId: '',
         playerVars: {
@@ -182,9 +247,7 @@ const VideoVault = ({ user }) => {
           origin: window.location.origin,
         },
         events: {
-          onReady: (e) => {
-            console.log("🏛️ MIGHTY ENGINE READY!");
-          },
+          onReady: (e) => {},
           onStateChange: (event) => {
             if (event.data === window.YT.PlayerState.ENDED) {
               setVideoEnded(true);
@@ -214,7 +277,6 @@ const VideoVault = ({ user }) => {
     };
   }, []);
 
-  // Load video when activeVideo changes
   useEffect(() => {
     if (!activeVideo) return;
 
@@ -243,7 +305,6 @@ const VideoVault = ({ user }) => {
     setTimeout(loadVideo, 250);
   }, [activeVideo]);
 
-  // Progress Save
   useEffect(() => {
     const interval = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime && activeVideo) {
@@ -269,7 +330,7 @@ const VideoVault = ({ user }) => {
     if (state === window.YT.PlayerState.PLAYING) {
       playerRef.current.pauseVideo();
     } else {
-      handleFullscreen(true); // 🔥 Force enter fullscreen on play
+      handleFullscreen(true); 
       playerRef.current.playVideo();
     }
   };
@@ -289,7 +350,6 @@ const VideoVault = ({ user }) => {
     setActiveVideo(video);
   };
 
-  // 🆕 UPDATED FULLSCREEN HANDLER (Toggles on/off cleanly)
   const handleFullscreen = (forceEnter = false) => {
     const wrapper = document.getElementById('player-wrapper');
     if (!wrapper) return;
@@ -297,7 +357,6 @@ const VideoVault = ({ user }) => {
     const isCurrentlyFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
 
     if (!isCurrentlyFullscreen) {
-      // Enter Fullscreen
       const request = wrapper.requestFullscreen || wrapper.webkitRequestFullscreen || wrapper.msRequestFullscreen;
       if (request) request.call(wrapper);
 
@@ -307,7 +366,6 @@ const VideoVault = ({ user }) => {
         }
       } catch (e) {}
     } else if (!forceEnter) {
-      // Exit Fullscreen
       if (document.exitFullscreen) document.exitFullscreen();
       else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     }
@@ -340,7 +398,6 @@ const VideoVault = ({ user }) => {
         <div style={{ ...styles.playerSection, flex: isMobile ? 'none' : 5 }}>
           {activeVideo && (
             <>
-              {/* 🆕 APPLY DYNAMIC STYLES BASED ON isFullscreen STATE */}
               <div 
                 id="player-wrapper" 
                 style={isFullscreen ? styles.playerWrapperFullscreen : styles.playerWrapper}
@@ -353,7 +410,6 @@ const VideoVault = ({ user }) => {
                 <div style={styles.bottomLeftBlocker} />
                 <div style={styles.centerTopBlocker} />
 
-                {/* FULLSCREEN BUTTON INSIDE PLAYER */}
                 {isMobile && (
                   <button
                     onClick={() => handleFullscreen(false)}
@@ -423,7 +479,6 @@ const VideoVault = ({ user }) => {
                   10s ⏩
                 </button>
 
-                {/* FULLSCREEN BUTTON IN CONTROLS — Mobile only */}
                 {isMobile && (
                   <button
                     onClick={() => handleFullscreen(false)}
@@ -469,7 +524,10 @@ const VideoVault = ({ user }) => {
                   {activeVideo?._id === v._id ? '▶' : '○'}
                 </div>
                 <span style={styles.videoItemTitle}>{v.title}</span>
-                <div style={styles.lockIcon}>🔒</div>
+                {/* ✅ FIX: Lock icon changes based on live system mode */}
+                <div style={styles.lockIcon}>
+                  {isFreeMode ? '🔓' : '🔒'}
+                </div>
               </div>
             ))}
           </div>
@@ -501,11 +559,10 @@ const styles = {
   layout: { display: 'flex', gap: '20px', maxWidth: '100%', margin: '0 auto', padding: '0 20px' },
   playerSection: { minWidth: 0 },
 
-  // 🆕 STANDARD PLAYER STYLE (16:9 Aspect Ratio fixes the standard view bars)
   playerWrapper: {
     position: 'relative',
     width: '100%',
-    paddingBottom: '56.25%', // Perfect 16:9 math!
+    paddingBottom: '56.25%',
     background: '#000',
     borderRadius: '24px',
     overflow: 'visible',
@@ -513,13 +570,12 @@ const styles = {
     border: '1px solid #111',
   },
 
-  // 🆕 FULLSCREEN PLAYER STYLE (Fills the whole mobile screen perfectly)
   playerWrapperFullscreen: {
     position: 'relative',
     width: '100vw',
     height: '100vh',
     background: '#000',
-    overflow: 'hidden', // Hide overflow in fullscreen to prevent scrollbars
+    overflow: 'hidden',
   },
 
   playerDiv: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
