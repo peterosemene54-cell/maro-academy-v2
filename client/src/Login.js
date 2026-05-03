@@ -69,14 +69,7 @@ const Login = ({ setUser }) => {
             const settingsRes = await axios.get(`${API_URL}/api/settings`);
             const isFreeMode = !settingsRes.data.paymentRequired;
 
-            if (!isFreeMode && !userData.isPaid) {
-                // PAID MODE + NOT APPROVED = Block them on this screen
-                setStatus({ 
-                    loading: false, 
-                    error: "Access Granted, but Admin hasn’t approved your payment yet. Contact Oga." 
-                });
-                return; // STOP HERE. Don't let them enter the vault.
-            }
+           
             // If Free Mode OR (Paid Mode + Approved), they pass through below!
             // ==========================================
 
