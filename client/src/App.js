@@ -39,7 +39,7 @@ const PrivateGuard = ({ children, user, paymentRequired }) => {
     const hasToken = localStorage.getItem('maroToken');
     
     // ONLY block them if they have NO token AND are not approved
-    if (!user.isPaid && !hasToken) {
+    if (!hasToken) {
         return <Navigate to="/access-denied" replace />;
     }
     

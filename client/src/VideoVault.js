@@ -45,6 +45,7 @@ const VideoVault = ({ user }) => {
   // ===============================
   // 🛡️ 3. HTTP BACKUP CHECKER
   // ===============================
+    // 🛡️ 3. HTTP BACKUP CHECKER (Fixed to trust backend, not phone memory)
   useEffect(() => {
     const checkSystemMode = async () => {
       try {
@@ -52,13 +53,10 @@ const VideoVault = ({ user }) => {
         const isNowPaidMode = res.data.paymentRequired;
 
         if (isNowPaidMode) {
-          const savedUser = JSON.parse(localStorage.getItem('maroUser'));
-          if (!savedUser || !savedUser.isPaid) {
-            handleInstantKick('System locked by Admin. Login again.');
-            return;
-          } else {
-            setIsFreeMode(false);
-          }
+          // ✅ FIX: Removed the !savedUser.isPaid check. 
+          // We don't care what the phone memory says anymore.
+          // If they aren't approved, the backend /api/videos call will catch it and kick them out safely.
+          setIsFreeMode(false);
         } else {
           setIsFreeMode(true);
         }
@@ -68,10 +66,9 @@ const VideoVault = ({ user }) => {
     };
 
     checkSystemMode();
-    const backupChecker = setInterval(checkSystemMode, 10000);
+    const backupChecker = setInterval(checkSystemMode, 10000); // Check every 10 seconds
     return () => clearInterval(backupChecker);
   }, []);
-
   // ===============================
   // ⚡ 4. WEBSOCKET LISTENER
   // ===============================
