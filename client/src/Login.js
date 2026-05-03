@@ -52,8 +52,8 @@ const Login = ({ setUser }) => {
                 email: credentials.email.trim(),
                 password: credentials.password
             });
-            
             const loggedInUser = res.data;
+            console.log("FULL SERVER RESPONSE:", JSON.stringify(res.data))
 
             // 🛡️ CRITICAL FIX: Separate the secure session token from user data
           const { sessionToken, ...userData } = loggedInUser;
