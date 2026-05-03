@@ -1,14 +1,8 @@
-/**
- * MARO ACADEMY GLOBAL - THE INFINITE GUARDIAN
- * VERSION: 6.4.1 (The TRUE Unbreakable Build)
- */
-
 import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-// 🚀 LAZY LOADING
 const Register = lazy(() => import('./Register'));
 const Admin = lazy(() => import('./Admin'));
 const Login = lazy(() => import('./Login'));
@@ -18,16 +12,10 @@ const BrowserWarning = lazy(() => import('./BrowserWarning'));
 
 const API_URL = "https://maro-academy-v2.onrender.com";
 
-// =============================================
-// 🛡️ THE UNBREAKABLE ROUTE GUARD
-// =============================================
 const PrivateGuard = ({ children, user, paymentRequired }) => {
     if (!paymentRequired) return children;
     if (!user) return <Navigate to="/login" replace />;
-    
-    const hasToken = localStorage.getItem('maroToken');
-    if (!hasToken) return <Navigate to="/access-denied" replace />;
-    
+    if (!localStorage.getItem('maroToken')) return <Navigate to="/access-denied" replace />;
     return children;
 };
 
@@ -45,20 +33,14 @@ function App() {
     const [systemNotice, setSystemNotice] = useState("");
     const [socketConnected, setSocketConnected] = useState(false);
 
-    // =============================================
-    // ⚡ THE GLOBAL KILL-SWITCH
-    // =============================================
     const handleKick = useCallback((reason = "security_violation") => {
-        console.warn(`[SECURITY ALERT] Kicking user: ${reason}`);
         localStorage.removeItem('maroUser');
         localStorage.removeItem('maroToken'); 
         setUser(null);
         window.location.href = `/access-denied?reason=${reason}`;
     }, []);
 
-    // =============================================
-    // 📡 WEBSOCKET ENGINE
-    // =============================================
+    // WEBSOCKET
     useEffect(() => {
         if (!user?._id) {
             setSocketConnected(false);
@@ -89,9 +71,7 @@ function App() {
         return () => socket.disconnect();
     }, [user, handleKick]);
 
-    // =============================================
-    // 🏛️ REFRESH SYNC (Saga-Free Ping)
-    // =============================================
+    // BACKGROUND SYNC
     const syncStatus = useCallback(async () => {
         if (!user?._id) return;
 
@@ -102,7 +82,6 @@ function App() {
             
             if (res.data.paymentRequired) {
                 const token = localStorage.getItem('maroToken');
-                // ✅ FIX: Only ping backend if they actually have a token
                 if (token) {
                     await axios.get(`${API_URL}/api/videos`, {
                         headers: { 'x-vault-token': token }
@@ -110,31 +89,25 @@ function App() {
                 }
             }
         } catch (e) {
+            // 401 = Fake token, 403 = Expired. Kick them.
+            // 402 = Not approved yet. IGNORE IT so they don't get stuck in a loop!
             if (e.response && [401, 403].includes(e.response.status)) {
                 handleKick("access_revoked");
             }
         }
     }, [user, handleKick]);
 
-    // ✅ YOU ACCIDENTALLY DELETED THIS WHOLE BLOCK! (Added back)
     useEffect(() => {
         syncStatus();
-        const backupCheck = setInterval(syncStatus, 30000); 
-        return () => clearInterval(backupCheck);
+        const interval = setInterval(syncStatus, 30000); 
+        return () => clearInterval(interval);
     }, [syncStatus]);
 
-    // =============================================
-    // 🔑 AUTH HANDLERS
-    // =============================================
-    // ✅ YOU ACCIDENTALLY DELETED THIS! (Added back)
     const handleLogin = (userData) => {
         setUser(userData);
         localStorage.setItem('maroUser', JSON.stringify(userData));
     };
 
-    // =============================================
-    // 🎨 UI COMPONENTS
-    // =============================================
     const LoadingScreen = useMemo(() => (
         <div className="flex flex-col items-center justify-center h-screen bg-black font-mono">
             <div className="relative">
@@ -143,10 +116,7 @@ function App() {
                     <span className="text-green-500 text-xs">MARO</span>
                 </div>
             </div>
-            <h2 className="mt-8 text-green-500 tracking-[0.5em] animate-pulse">
-                INITIALIZING CITADEL...
-            </h2>
-            <p className="mt-2 text-gray-600 text-[10px]">VERIFYING ENCRYPTION KEYS</p>
+            <h2 className="mt-8 text-green-500 tracking-[0.5em] animate-pulse">INITIALIZING CITADEL...</h2>
         </div>
     ), []);
 
@@ -161,14 +131,11 @@ function App() {
                         <Route path="/access-denied" element={<AccessDenied />} />
                         <Route path="/browser-warning" element={<BrowserWarning />} />
                         
-                        <Route 
-                            path="/video-vault" 
-                            element={
-                                <PrivateGuard user={user} paymentRequired={paymentRequired}>
-                                    <VideoVault user={user} />
-                                </PrivateGuard>
-                            } 
-                        />
+                        <Route path="/video-vault" element={
+                            <PrivateGuard user={user} paymentRequired={paymentRequired}>
+                                <VideoVault user={user} />
+                            </PrivateGuard>
+                        } />
 
                         <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
@@ -190,12 +157,10 @@ function App() {
                         </div>
                         {user && (
                             <div className="text-[9px] text-gray-400 font-mono">
-                                SESSION_ID: {user._id.substring(0, 8)}... | SECURITY_LEVEL: HIGH
+                                SESSION: {user._id.substring(0, 8)}...
                             </div>
                         )}
-                        <div className="text-[9px] text-gray-400">
-                            © 2026 MARO ACADEMY GLOBAL
-                        </div>
+                        <div className="text-[9px] text-gray-400">© 2026 MARO ACADEMY</div>
                     </div>
                 </footer>
             </div>
