@@ -147,7 +147,7 @@ const VideoVault = ({ user }) => {
     };
 
     checkExpiry();
-    const expiryWatcher = setInterval(checkExpiry, 30000); // ✅ Every 30s, not 1s (saves bandwidth)
+    const expiryWatcher = setInterval(checkExpiry, 10000); // ✅ Every 30s, not 1s (saves bandwidth)
     return () => clearInterval(expiryWatcher);
   }, [navigate, isFreeMode]);
 
