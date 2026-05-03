@@ -404,10 +404,19 @@ const VideoVault = ({ user }) => {
                 <div style={styles.mightyShield} />
 
                 {/* 🎬 CUSTOM OVERLAY - Hides YouTube branding before play */}
-                {!isPlaying && !videoEnded && (
-                  <div style={styles.thumbnailOverlay} onClick={togglePlayback}>
-                    <div style={styles.playCircle}>▶</div>
-                    <p style={styles.thumbnailTitle}>{activeVideo?.title}</p>
+                {/* 🎬 CUSTOM OVERLAY - Hides YouTube branding before and during play start */}
+                {!videoEnded && (
+                  <div 
+                    style={{
+                      ...styles.thumbnailOverlay,
+                      opacity: isPlaying ? 0 : 1,
+                      transition: 'opacity 3s ease',
+                      pointerEvents: isPlaying ? 'none' : 'auto'
+                    }} 
+                    onClick={togglePlayback}
+                  >
+                    {!isPlaying && <div style={styles.playCircle}>▶</div>}
+                    {!isPlaying && <p style={styles.thumbnailTitle}>{activeVideo?.title}</p>}
                   </div>
                 )}
 
