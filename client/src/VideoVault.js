@@ -129,7 +129,7 @@ const VideoVault = ({ user }) => {
         const token = localStorage.getItem('maroToken');
         if (!token) return;
 
-        const res = await axios.get(`${API_URL}/api/videos`, {
+        await axios.get(`${API_URL}/api/videos`, {
           headers: { 'x-vault-token': token }
         });
 
