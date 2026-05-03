@@ -56,7 +56,8 @@ const Login = ({ setUser }) => {
             const loggedInUser = res.data;
 
             // 🛡️ CRITICAL FIX: Separate the secure session token from user data
-            const { sessionToken, ...userData } = loggedInUser;
+          const { sessionToken, ...userData } = loggedInUser;
+        console.log("TOKEN FROM SERVER:", sessionToken);
 
             // 2. Clear old sessions to prevent ghost tokens
             localStorage.removeItem('maroToken');
