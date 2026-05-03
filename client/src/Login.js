@@ -66,7 +66,7 @@ const Login = ({ setUser }) => {
             // 🆕 THE UNBREAKABLE FREE/PAID LOGIC
             // ==========================================
             // Ask the backend: "Are we in Free Mode or Paid Mode?"
-            const settingsRes = await axios.get(`${API_URL}/api/settings`);
+           
             
 
            
