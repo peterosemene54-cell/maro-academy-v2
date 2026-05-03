@@ -41,10 +41,14 @@ const Login = ({ setUser }) => {
     const handleLogin = async (e) => {
         e.preventDefault();
         setStatus({ loading: true, error: null });
+        
 
         try {
             // 1. Dispatch Login Request
+            await axios.get(`${API_URL}/`).catch(() => {}); // Wake up server
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
             const res = await axios.post(`${API_URL}/api/login`, {
+            
                 email: credentials.email.trim(),
                 password: credentials.password
             });
