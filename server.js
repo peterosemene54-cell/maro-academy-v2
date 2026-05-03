@@ -312,7 +312,6 @@ app.post('/api/login', highSecurityLimiter, async (req, res) => {
 
         const userObject = user.toObject();
         delete userObject.password; 
-        delete userObject.sessionToken; 
 
         res.status(200).json({ ...userObject, sessionToken });
     } catch (err) {
