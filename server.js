@@ -338,7 +338,9 @@ app.put('/api/students/:id/approve', checkAdmin, async (req, res) => {
         } else {
             user.isPaid = false;
             user.expiryDate = null;
-            user.sessionToken = null; 
+            // ❌ DELETE THIS LINE RIGHT HERE:
+            // user.sessionToken = null; 
+            
             io.to(user._id.toString()).emit('force_disconnect', { reason: 'Admin Revoked Access' });
         }
 
@@ -423,11 +425,12 @@ app.put('/api/settings', checkAdmin, async (req, res) => {
         const updated = await Setting.findOneAndUpdate({}, req.body, { new: true, upsert: true });
         
         // ☢️ SWITCHING TO PAID MODE: Lock everyone out instantly
-        if (updated.paymentRequired === true) {
-            await User.updateMany(
-                { role: 'student' },
-                { $set: { isPaid: false, expiryDate: null, sessionToken: null } }
-            );
+        // ☢️ NUCLEAR OPTION: If switching to RESTRICTED mode, lock everyone
+if (updated.paymentRequired === true) {
+    await User.updateMany(
+        { role: 'student' },
+        { $set: { isPaid: false } } // ✅ FIXED: Removed sessionToken: null so their ID stays valid!
+    );
             console.log("☢️ PAID MODE ARMED: All access revoked globally.");
             io.emit('force_disconnect', { reason: 'System switched to Restricted Mode' });
         } 

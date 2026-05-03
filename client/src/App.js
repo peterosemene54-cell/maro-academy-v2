@@ -1,7 +1,6 @@
 /**
  * MARO ACADEMY GLOBAL - THE INFINITE GUARDIAN
- * VERSION: 6.4.0 (Smart Mobile Tuning)
- * FEATURES: Socket.io Integration, Session Tracking, Anti-Tamper Logic, Performance Tuned
+ * VERSION: 6.4.1 (The TRUE Unbreakable Build)
  */
 
 import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo } from 'react';
@@ -9,7 +8,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-// 🚀 LAZY LOADING (Performance Optimization)
+// 🚀 LAZY LOADING
 const Register = lazy(() => import('./Register'));
 const Admin = lazy(() => import('./Admin'));
 const Login = lazy(() => import('./Login'));
@@ -17,34 +16,21 @@ const VideoVault = lazy(() => import('./VideoVault'));
 const AccessDenied = lazy(() => import('./AccessDenied'));
 const BrowserWarning = lazy(() => import('./BrowserWarning'));
 
-// 🌐 CONFIG
 const API_URL = "https://maro-academy-v2.onrender.com";
 
 // =============================================
-// 🛡️ ADVANCED ROUTE GUARD COMPONENT
-// =============================================
-// =============================================
-// 🛡️ ADVANCED ROUTE GUARD COMPONENT (Fixed Approval Delay)
+// 🛡️ THE UNBREAKABLE ROUTE GUARD
 // =============================================
 const PrivateGuard = ({ children, user, paymentRequired }) => {
-    // FREE MODE: Let everyone in
     if (!paymentRequired) return children;
-    
-    // NOT LOGGED IN AT ALL: Send to login
     if (!user) return <Navigate to="/login" replace />;
     
-    // ✅ THE FIX: If they have a token, let them try to enter the vault. 
-    // The Vault will ask the backend if the token is valid. If Oga JUST approved them,
-    // the backend will say "Yes", and they get in without seeing Access Denied!
     const hasToken = localStorage.getItem('maroToken');
-    
-    // ONLY block them if they have NO token AND are not approved
-    if (!hasToken) {
-        return <Navigate to="/access-denied" replace />;
-    }
+    if (!hasToken) return <Navigate to="/access-denied" replace />;
     
     return children;
 };
+
 function App() {
     const [user, setUser] = useState(() => {
         const saved = localStorage.getItem('maroUser');
@@ -60,7 +46,7 @@ function App() {
     const [socketConnected, setSocketConnected] = useState(false);
 
     // =============================================
-    // ⚡ ACTION: THE GLOBAL KILL-SWITCH
+    // ⚡ THE GLOBAL KILL-SWITCH
     // =============================================
     const handleKick = useCallback((reason = "security_violation") => {
         console.warn(`[SECURITY ALERT] Kicking user: ${reason}`);
@@ -71,11 +57,9 @@ function App() {
     }, []);
 
     // =============================================
-    // 📡 WEBSOCKET ENGINE (Smart Mobile Tuning)
+    // 📡 WEBSOCKET ENGINE
     // =============================================
     useEffect(() => {
-        // 🚀 PERFORMANCE FIX: Don't connect to Socket on Login/Register pages!
-        // Only connect if user is actually logged in (has an ID). Saves massive mobile data.
         if (!user?._id) {
             setSocketConnected(false);
             return; 
@@ -88,7 +72,6 @@ function App() {
 
         socket.on('connect', () => {
             setSocketConnected(true);
-            console.log("⚡ Secure Link Established with Citadel.");
             socket.emit('init_vault_session', user._id);
         });
 
@@ -96,55 +79,44 @@ function App() {
             setPaymentRequired(data.payment);
             setSystemNotice(data.notice);
             localStorage.setItem('paymentRequired', JSON.stringify(data.payment));
-            
-            if (data.maintenance) {
-                handleKick("maintenance");
-            }
+            if (data.maintenance) handleKick("maintenance");
         });
 
-        socket.on('security_alert', (data) => {
-            handleKick(data.type.toLowerCase());
-        });
-
-        socket.on('force_disconnect', () => {
-            handleKick("admin_revoked");
-        });
-
+        socket.on('security_alert', (data) => handleKick(data.type.toLowerCase()));
+        socket.on('force_disconnect', () => handleKick("admin_revoked"));
         socket.on('disconnect', () => setSocketConnected(false));
 
         return () => socket.disconnect();
     }, [user, handleKick]);
 
     // =============================================
-    // 🏛️ REFRESH SYNC (Fixed 404 Error & Smart Ping)
+    // 🏛️ REFRESH SYNC (Saga-Free Ping)
     // =============================================
     const syncStatus = useCallback(async () => {
-        // 🚀 PERFORMANCE FIX: Don't ping backend if user isn't logged in
         if (!user?._id) return;
 
         try {
             const res = await axios.get(`${API_URL}/api/settings`);
             setPaymentRequired(res.data.paymentRequired);
+            localStorage.setItem('paymentRequired', JSON.stringify(res.data.paymentRequired));
             
-            if (user && res.data.paymentRequired) {
+            if (res.data.paymentRequired) {
                 const token = localStorage.getItem('maroToken');
-                
-                if (!token) {
-                    handleKick("missing_token");
-                    return;
+                // ✅ FIX: Only ping backend if they actually have a token
+                if (token) {
+                    await axios.get(`${API_URL}/api/videos`, {
+                        headers: { 'x-vault-token': token }
+                    });
                 }
-
-                await axios.get(`${API_URL}/api/videos`, {
-                    headers: { 'x-vault-token': token }
-                });
             }
         } catch (e) {
             if (e.response && [401, 402, 403].includes(e.response.status)) {
-                handleKick("unpaid_status");
+                handleKick("access_revoked");
             }
         }
     }, [user, handleKick]);
 
+    // ✅ YOU ACCIDENTALLY DELETED THIS WHOLE BLOCK! (Added back)
     useEffect(() => {
         syncStatus();
         const backupCheck = setInterval(syncStatus, 30000); 
@@ -154,6 +126,7 @@ function App() {
     // =============================================
     // 🔑 AUTH HANDLERS
     // =============================================
+    // ✅ YOU ACCIDENTALLY DELETED THIS! (Added back)
     const handleLogin = (userData) => {
         setUser(userData);
         localStorage.setItem('maroUser', JSON.stringify(userData));
@@ -182,14 +155,12 @@ function App() {
             <div className="min-h-screen bg-[#050505] text-white selection:bg-green-500 selection:text-black">
                 <Suspense fallback={LoadingScreen}>
                     <Routes>
-                        {/* PUBLIC ACCESS */}
                         <Route path="/" element={<Navigate to="/register" replace />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/login" element={<Login setUser={handleLogin} />} />
                         <Route path="/access-denied" element={<AccessDenied />} />
                         <Route path="/browser-warning" element={<BrowserWarning />} />
-
-                        {/* 🎬 SECURE VIDEO VAULT */}
+                        
                         <Route 
                             path="/video-vault" 
                             element={
@@ -199,16 +170,11 @@ function App() {
                             } 
                         />
 
-                        {/* 🔑 ADMIN OVERRIDE */}
                         <Route path="/oga-boss-admin-vault-77" element={<Admin />} />
-
-                        {/* FALLBACK */}
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Suspense>
 
-                {/* 🛡️ REAL-TIME SYSTEM MONITOR */}
-                {/* ✅ ACCESSIBILITY FIX: aria-hidden="true" tells screen readers to ignore decorative footer */}
                 <footer className="fixed bottom-0 w-full z-50" aria-hidden="true">
                     {systemNotice && (
                         <div className="bg-green-600 text-black text-center py-1 text-xs font-bold uppercase tracking-widest">
@@ -218,7 +184,6 @@ function App() {
                     <div className="bg-black/80 backdrop-blur-md border-t border-white/5 py-2 px-4 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-green-500 shadow-[0_0_10px_green]' : 'bg-red-500 animate-pulse'}`}></div>
-                            {/* ✅ ACCESSIBILITY FIX: Changed text-gray-500 to text-gray-400 so contrast is higher */}
                             <span className="text-[9px] uppercase tracking-tighter text-gray-400">
                                 {socketConnected ? 'Citadel Linked' : 'Link Interrupted'}
                             </span>
@@ -228,7 +193,6 @@ function App() {
                                 SESSION_ID: {user._id.substring(0, 8)}... | SECURITY_LEVEL: HIGH
                             </div>
                         )}
-                        {/* ✅ ACCESSIBILITY FIX: Changed text-gray-600 to text-gray-400 */}
                         <div className="text-[9px] text-gray-400">
                             © 2026 MARO ACADEMY GLOBAL
                         </div>
