@@ -110,7 +110,7 @@ function App() {
                 }
             }
         } catch (e) {
-            if (e.response && [401, 402, 403].includes(e.response.status)) {
+            if (e.response && [401, 403].includes(e.response.status)) {
                 handleKick("access_revoked");
             }
         }
