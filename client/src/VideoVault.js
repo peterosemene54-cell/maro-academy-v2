@@ -108,6 +108,9 @@ const VideoVault = ({ user }) => {
   // ===============================
   // ⏰ 5. MIGHTY EXPIRY WATCHER
   // ===============================
+  // ===============================
+  // ⏰ 5. MIGHTY EXPIRY WATCHER
+  // ===============================
   useEffect(() => {
     if (isFreeMode) return;
 
@@ -119,24 +122,32 @@ const VideoVault = ({ user }) => {
       }
 
       const userData = JSON.parse(savedUser);
-      if (!userData.expiryDate || !userData._id) return;
+      if (!userData._id) return;
 
-      const now = new Date();
-      const expiry = new Date(userData.expiryDate);
+      // ✅ FIX: Always trust backend expiryDate, not localStorage
+      try {
+        const token = localStorage.getItem('maroToken');
+        if (!token) return;
 
-      if (now > expiry) {
-        try {
-          await axios.put(`${API_URL}/api/students/auto-expire/${userData._id}`);
-        } catch (e) {
-          console.error("Could not update individual status", e);
+        const res = await axios.get(`${API_URL}/api/videos`, {
+          headers: { 'x-vault-token': token }
+        });
+
+        // If backend let them through, they are still valid — do nothing
+      } catch (e) {
+        if (e.response && (e.response.status === 403 || e.response.status === 402 || e.response.status === 401)) {
+          try {
+            await axios.put(`${API_URL}/api/students/auto-expire/${userData._id}`);
+          } catch (err) {
+            console.error("Could not update individual status", err);
+          }
+          handleInstantKick('Your 2-minute access has expired.');
         }
-
-        handleInstantKick('Your 2-minute access has expired.');
       }
     };
 
     checkExpiry();
-    const expiryWatcher = setInterval(checkExpiry, 1000);
+    const expiryWatcher = setInterval(checkExpiry, 30000); // ✅ Every 30s, not 1s (saves bandwidth)
     return () => clearInterval(expiryWatcher);
   }, [navigate, isFreeMode]);
 

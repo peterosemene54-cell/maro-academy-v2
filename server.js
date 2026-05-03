@@ -193,6 +193,14 @@ const checkVaultAccess = async (req, res, next) => {
         }
 
         // Real-time Expiry Sync
+        // ✅ START TIMER: First vault entry — start the clock NOW
+        if (user.isPaid && !user.expiryDate) {
+            user.expiryDate = new Date(Date.now() + (2 * 60 * 1000));
+            await user.save();
+            console.log(`⏱️ TIMER STARTED for ${user.email}`);
+        }
+
+        // Real-time Expiry Sync
         if (user.expiryDate && new Date() > new Date(user.expiryDate)) {
             user.isPaid = false;
             user.accountStatus = 'Expired';
@@ -334,7 +342,7 @@ app.put('/api/students/:id/approve', checkAdmin, async (req, res) => {
             user.isPaid = true;
             user.accountStatus = 'Active';
             // Exactly 2 minutes
-            user.expiryDate = new Date(Date.now() + (2 * 60 * 1000)); 
+            user.expiryDate = null; 
         } else {
             user.isPaid = false;
             user.expiryDate = null;
