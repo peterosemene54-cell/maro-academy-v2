@@ -12,6 +12,7 @@ const VideoVault = ({ user }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFreeMode, setIsFreeMode] = useState(false);
+  const [isVideoSwitching, setIsVideoSwitching] = useState(false);
 
   const navigate = useNavigate();
   const playerRef = useRef(null);
@@ -344,8 +345,11 @@ const VideoVault = ({ user }) => {
 
   const handleSelectVideo = (video) => {
     if (activeVideo?._id === video._id) return;
+   setIsVideoSwitching(true);
     setVideoEnded(false);
+    setIsPlaying(false);
     setActiveVideo(video);
+    setTimeout(() => setIsVideoSwitching(false), 2000);
   };
 
   const handleFullscreen = (forceEnter = false) => {
@@ -405,7 +409,15 @@ const VideoVault = ({ user }) => {
 
                 {/* 🎬 CUSTOM OVERLAY - Hides YouTube branding before play */}
                 {/* 🎬 CUSTOM OVERLAY - Hides YouTube branding before and during play start */}
-                {!videoEnded && (
+                {/* 🛡️ CORNER KILLERS - Exact fit on YouTube UI spots */}
+                {isPlaying && !isVideoSwitching && (
+                  <>
+                    <div style={styles.topLeftKiller} />
+                    <div style={styles.bottomLeftKiller} />
+                    <div style={styles.bottomRightKiller} />
+                  </>
+                )}
+               {(!videoEnded && (!isPlaying || isVideoSwitching)) && (
                   <div 
                     style={{
                       ...styles.thumbnailOverlay,
@@ -576,7 +588,10 @@ const styles = {
 loaderSpinner: { width: '50px', height: '50px', border: '4px solid #111', borderTop: '4px solid #ffd700', borderRadius: '50%', animation: 'spin 1s linear infinite' },
   thumbnailOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   playCircle: { width: '80px', height: '80px', borderRadius: '50%', background: '#ffd700', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#000', fontWeight: 'bold', marginBottom: '20px' },
-  thumbnailTitle: { color: '#fff', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center', padding: '0 20px' }
+thumbnailTitle: { color: '#fff', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center', padding: '0 20px' },
+  topLeftKiller: { position: 'absolute', top: 0, left: 0, width: '210px', height: '70px', background: '#000', zIndex: 15, pointerEvents: 'none' },
+  bottomLeftKiller: { position: 'absolute', bottom: 0, left: 0, width: '130px', height: '45px', background: '#000', zIndex: 15, pointerEvents: 'none' },
+  bottomRightKiller: { position: 'absolute', bottom: 0, right: 0, width: '150px', height: '45px', background: '#000', zIndex: 15, pointerEvents: 'none' },
 };
 
 export default VideoVault;
