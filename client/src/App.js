@@ -1,13 +1,13 @@
 /**
  * MARO ACADEMY GLOBAL - THE INFINITE GUARDIAN
- * VERSION: 6.2.0 (WebSocket & Enterprise Guard)
- * FEATURES: Socket.io Integration, Session Tracking, Anti-Tamper Logic
+ * VERSION: 6.4.0 (Smart Mobile Tuning)
+ * FEATURES: Socket.io Integration, Session Tracking, Anti-Tamper Logic, Performance Tuned
  */
 
 import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { io } from 'socket.io-client'; // Install this: npm install socket.io-client
+import { io } from 'socket.io-client';
 
 // 🚀 LAZY LOADING (Performance Optimization)
 const Register = lazy(() => import('./Register'));
@@ -31,7 +31,6 @@ const PrivateGuard = ({ children, user, paymentRequired }) => {
 };
 
 function App() {
-    // 🔐 PERSISTENT STATES
     const [user, setUser] = useState(() => {
         const saved = localStorage.getItem('maroUser');
         return saved ? JSON.parse(saved) : null;
@@ -51,30 +50,33 @@ function App() {
     const handleKick = useCallback((reason = "security_violation") => {
         console.warn(`[SECURITY ALERT] Kicking user: ${reason}`);
         localStorage.removeItem('maroUser');
-        localStorage.removeItem('maroToken'); // 🛡️ ADDED: Clear token on kick
+        localStorage.removeItem('maroToken'); 
         setUser(null);
-        // Using window.location to ensure state is completely wiped
         window.location.href = `/access-denied?reason=${reason}`;
     }, []);
 
     // =============================================
-    // 📡 WEBSOCKET ENGINE (The Real-Time Guard)
+    // 📡 WEBSOCKET ENGINE (Smart Mobile Tuning)
     // =============================================
     useEffect(() => {
+        // 🚀 PERFORMANCE FIX: Don't connect to Socket on Login/Register pages!
+        // Only connect if user is actually logged in (has an ID). Saves massive mobile data.
+        if (!user?._id) {
+            setSocketConnected(false);
+            return; 
+        }
+
         const socket = io(API_URL, {
-            transports: ['websocket'],
-            reconnectionAttempts: 5
+            reconnectionAttempts: 5,
+            reconnectionDelay: 2000
         });
 
         socket.on('connect', () => {
             setSocketConnected(true);
             console.log("⚡ Secure Link Established with Citadel.");
-            if (user?._id) {
-                socket.emit('init_vault_session', user._id);
-            }
+            socket.emit('init_vault_session', user._id);
         });
 
-        // 🟢 LISTEN: Global Settings Changes
         socket.on('system_broadcast', (data) => {
             setPaymentRequired(data.payment);
             setSystemNotice(data.notice);
@@ -85,7 +87,6 @@ function App() {
             }
         });
 
-        // 🔴 LISTEN: Individual Kick (Payment Revoked or Expired)
         socket.on('security_alert', (data) => {
             handleKick(data.type.toLowerCase());
         });
@@ -100,42 +101,38 @@ function App() {
     }, [user, handleKick]);
 
     // =============================================
-    // 🏛️ REFRESH SYNC (The Backup Guard)
+    // 🏛️ REFRESH SYNC (Fixed 404 Error & Smart Ping)
     // =============================================
     const syncStatus = useCallback(async () => {
+        // 🚀 PERFORMANCE FIX: Don't ping backend if user isn't logged in
+        if (!user?._id) return;
+
         try {
-            const res = await axios.get(`${API_URL}/api/system/settings`);
+            const res = await axios.get(`${API_URL}/api/settings`);
             setPaymentRequired(res.data.paymentRequired);
             
             if (user && res.data.paymentRequired) {
-                // 🛡️ UPDATED: Heartbeat check using the new secure vault route
                 const token = localStorage.getItem('maroToken');
                 
-                // If token is missing entirely, kick them
                 if (!token) {
                     handleKick("missing_token");
                     return;
                 }
 
-                // Ping the backend with the token. If admin revoked them, the token is destroyed,
-                // and the backend will throw a 401/403 error, triggering the catch block below.
                 await axios.get(`${API_URL}/api/videos`, {
                     headers: { 'x-vault-token': token }
                 });
             }
         } catch (e) {
-            // Only kick them if the backend explicitly rejected their token
             if (e.response && [401, 402, 403].includes(e.response.status)) {
                 handleKick("unpaid_status");
-            } else {
-                console.error("Shield sync lag...");
             }
         }
     }, [user, handleKick]);
 
     useEffect(() => {
         syncStatus();
-        const backupCheck = setInterval(syncStatus, 30000); // Only every 30s as backup to Socket
+        const backupCheck = setInterval(syncStatus, 30000); 
         return () => clearInterval(backupCheck);
     }, [syncStatus]);
 
@@ -196,7 +193,8 @@ function App() {
                 </Suspense>
 
                 {/* 🛡️ REAL-TIME SYSTEM MONITOR */}
-                <footer className="fixed bottom-0 w-full z-50">
+                {/* ✅ ACCESSIBILITY FIX: aria-hidden="true" tells screen readers to ignore decorative footer */}
+                <footer className="fixed bottom-0 w-full z-50" aria-hidden="true">
                     {systemNotice && (
                         <div className="bg-green-600 text-black text-center py-1 text-xs font-bold uppercase tracking-widest">
                             📢 {systemNotice}
@@ -205,16 +203,18 @@ function App() {
                     <div className="bg-black/80 backdrop-blur-md border-t border-white/5 py-2 px-4 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <div className={`h-2 w-2 rounded-full ${socketConnected ? 'bg-green-500 shadow-[0_0_10px_green]' : 'bg-red-500 animate-pulse'}`}></div>
-                            <span className="text-[9px] uppercase tracking-tighter text-gray-500">
+                            {/* ✅ ACCESSIBILITY FIX: Changed text-gray-500 to text-gray-400 so contrast is higher */}
+                            <span className="text-[9px] uppercase tracking-tighter text-gray-400">
                                 {socketConnected ? 'Citadel Linked' : 'Link Interrupted'}
                             </span>
                         </div>
                         {user && (
-                            <div className="text-[9px] text-gray-500 font-mono">
+                            <div className="text-[9px] text-gray-400 font-mono">
                                 SESSION_ID: {user._id.substring(0, 8)}... | SECURITY_LEVEL: HIGH
                             </div>
                         )}
-                        <div className="text-[9px] text-gray-600">
+                        {/* ✅ ACCESSIBILITY FIX: Changed text-gray-600 to text-gray-400 */}
+                        <div className="text-[9px] text-gray-400">
                             © 2026 MARO ACADEMY GLOBAL
                         </div>
                     </div>
