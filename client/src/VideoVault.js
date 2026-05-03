@@ -400,7 +400,16 @@ const VideoVault = ({ user }) => {
                 <div id={playerDivId} style={styles.playerDiv} />
                 
                 {/* 🛡️ THE MIGHTY INVISIBLE FORCEFIELD (No physical black boxes needed) */}
+                {/* 🛡️ THE MIGHTY INVISIBLE FORCEFIELD (No physical black boxes needed) */}
                 <div style={styles.mightyShield} />
+
+                {/* 🎬 CUSTOM OVERLAY - Hides YouTube branding before play */}
+                {!isPlaying && !videoEnded && (
+                  <div style={styles.thumbnailOverlay} onClick={togglePlayback}>
+                    <div style={styles.playCircle}>▶</div>
+                    <p style={styles.thumbnailTitle}>{activeVideo?.title}</p>
+                  </div>
+                )}
 
                 {isMobile && (
                   <button onClick={() => handleFullscreen(false)} style={styles.fullscreenInsideBtn}>
@@ -555,7 +564,10 @@ const styles = {
   lockIcon: { marginLeft: 'auto', color: '#ffd700', fontSize: '0.9rem' },
   lockedNotice: { marginTop: '20px', padding: '15px', background: 'rgba(255,215,0,0.05)', borderRadius: '10px', color: '#ffd700', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(255,215,0,0.1)' },
   loadingWrapper: { height: '100vh', background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
-  loaderSpinner: { width: '50px', height: '50px', border: '4px solid #111', borderTop: '4px solid #ffd700', borderRadius: '50%', animation: 'spin 1s linear infinite' }
+loaderSpinner: { width: '50px', height: '50px', border: '4px solid #111', borderTop: '4px solid #ffd700', borderRadius: '50%', animation: 'spin 1s linear infinite' },
+  thumbnailOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  playCircle: { width: '80px', height: '80px', borderRadius: '50%', background: '#ffd700', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#000', fontWeight: 'bold', marginBottom: '20px' },
+  thumbnailTitle: { color: '#fff', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center', padding: '0 20px' }
 };
 
 export default VideoVault;
