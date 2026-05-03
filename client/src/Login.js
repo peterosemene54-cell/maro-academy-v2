@@ -67,7 +67,7 @@ const Login = ({ setUser }) => {
             // ==========================================
             // Ask the backend: "Are we in Free Mode or Paid Mode?"
             const settingsRes = await axios.get(`${API_URL}/api/settings`);
-            const isFreeMode = !settingsRes.data.paymentRequired;
+            
 
            
             // If Free Mode OR (Paid Mode + Approved), they pass through below!
