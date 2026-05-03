@@ -589,9 +589,9 @@ loaderSpinner: { width: '50px', height: '50px', border: '4px solid #111', border
   thumbnailOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   playCircle: { width: '80px', height: '80px', borderRadius: '50%', background: '#ffd700', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: '#000', fontWeight: 'bold', marginBottom: '20px' },
 thumbnailTitle: { color: '#fff', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'center', padding: '0 20px' },
-  topLeftKiller: { position: 'absolute', top: 0, left: 0, width: '210px', height: '70px', background: '#000', zIndex: 15, pointerEvents: 'none' },
-  bottomLeftKiller: { position: 'absolute', bottom: 0, left: 0, width: '130px', height: '45px', background: '#000', zIndex: 15, pointerEvents: 'none' },
-  bottomRightKiller: { position: 'absolute', bottom: 0, right: 0, width: '150px', height: '45px', background: '#000', zIndex: 15, pointerEvents: 'none' },
+topLeftKiller: { position: 'absolute', top: 0, left: 0, width: '35%', height: '12%', background: '#000', zIndex: 15, pointerEvents: 'none' },
+  bottomLeftKiller: { position: 'absolute', bottom: 0, left: 0, width: '20%', height: '10%', background: '#000', zIndex: 15, pointerEvents: 'none' },
+  bottomRightKiller: { position: 'absolute', bottom: 0, right: 0, width: '25%', height: '10%', background: '#000', zIndex: 15, pointerEvents: 'none' },
 };
 
 export default VideoVault;
