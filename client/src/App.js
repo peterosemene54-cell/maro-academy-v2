@@ -23,13 +23,28 @@ const API_URL = "https://maro-academy-v2.onrender.com";
 // =============================================
 // 🛡️ ADVANCED ROUTE GUARD COMPONENT
 // =============================================
+// =============================================
+// 🛡️ ADVANCED ROUTE GUARD COMPONENT (Fixed Approval Delay)
+// =============================================
 const PrivateGuard = ({ children, user, paymentRequired }) => {
+    // FREE MODE: Let everyone in
     if (!paymentRequired) return children;
+    
+    // NOT LOGGED IN AT ALL: Send to login
     if (!user) return <Navigate to="/login" replace />;
-    if (!user.isPaid) return <Navigate to="/access-denied" replace />;
+    
+    // ✅ THE FIX: If they have a token, let them try to enter the vault. 
+    // The Vault will ask the backend if the token is valid. If Oga JUST approved them,
+    // the backend will say "Yes", and they get in without seeing Access Denied!
+    const hasToken = localStorage.getItem('maroToken');
+    
+    // ONLY block them if they have NO token AND are not approved
+    if (!user.isPaid && !hasToken) {
+        return <Navigate to="/access-denied" replace />;
+    }
+    
     return children;
 };
-
 function App() {
     const [user, setUser] = useState(() => {
         const saved = localStorage.getItem('maroUser');
