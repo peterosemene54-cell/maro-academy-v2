@@ -256,6 +256,9 @@ const Admin = () => {
         if (!paymentRequired) {
             return '∞ FOREVER';
         }
+       if (!student.isPaid && student.expiryDate && new Date(student.expiryDate) < new Date()) {
+            return 'EXPIRED';
+        }
         if (!student.isPaid || !student.expiryDate) {
             return '—';
         }

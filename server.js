@@ -501,7 +501,7 @@ app.put('/api/students/auto-expire/:id', async (req, res) => {
 // 🧹 SECTION 9: AUTOMATED CRON JOBS
 // =============================================
 
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('* * * * *', async () => {
     console.log('⏰ Running midnight security sweep...');
     const now = new Date();
     const result = await User.updateMany(

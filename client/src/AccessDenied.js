@@ -34,8 +34,8 @@ const AccessDenied = () => {
                 
                 <p style={{ fontSize: '1.2rem', color: '#555', lineHeight: '1.6' }}>
                     {isExpired 
-                        ? 'Your 30-day access has ended. Renew your subscription to continue watching tutorials and keep your progress going! 💪'
-                        : "Oga hasn't cleared your account to watch the tutorials yet.If u have registered paid before and u are seeing this page ,it simply means it subscription has espired.pleasea pay again"
+                        ? 'Dear student, you have registered and watched videos on Maro Academy before, but your subscription has now expired. Please renew your access to continue your learning journey! 💪'
+                        : "Oga hasn't cleared your account yet. If you have paid and you are seeing this page, please contact Oga on WhatsApp for instant approval."
                     }
                 </p>
 
