@@ -218,6 +218,29 @@ const Admin = () => {
             alert("System Update Failed"); 
         }
     };
+        // =============================================
+    // 🎨 UI HELPER: EXPIRED STATUS LOGIC
+    // =============================================
+    const displayStatus = (student) => {
+        // If we are in FREE MODE, everyone is just "ACTIVE"
+        if (!paymentRequired) return <span style={{color: '#00ff00'}}>FREE ACCESS</span>;
+
+        const now = new Date();
+        const expiry = student.expiryDate ? new Date(student.expiryDate) : null;
+
+        // Force UI to show EXPIRED in Orange if the time is up
+        if (student.isPaid && expiry && now > expiry) {
+            return <span style={{color: '#ffa500', fontWeight: 'bold'}}>EXPIRED</span>;
+        }
+
+        // Standard colors: Green for Approved, Red for Locked
+        return (
+            <span style={{color: student.isPaid ? '#00ff00' : '#ff4d4d', fontWeight: 'bold'}}>
+                {student.isPaid ? 'APPROVED' : 'LOCKED'}
+            </span>
+        );
+    };
+
 
     const handleVideoUpload = async (e) => {
         e.preventDefault();
