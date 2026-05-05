@@ -260,20 +260,7 @@ const Admin = () => {
     };
 
     // ✅ Helper to get display status for table
-    const getStudentStatus = (student) => {
-        if (!paymentRequired) {
-            return { label: 'FREE ACCESS', bg: '#e8f4fd', color: '#007bff' };
-        }
-        if (student.isPaid) {
-            // Check if expired (in paid mode)
-            if (student.expiryDate && new Date(student.expiryDate) < new Date()) {
-                return { label: 'EXPIRED', bg: '#fff3cd', color: '#856404' };
-            }
-            return { label: 'APPROVED', bg: '#eaffea', color: '#28a745' };
-        }
-        return { label: 'LOCKED', bg: '#ffeaea', color: '#ff4d4d' };
-    };
-
+    
     // ✅ Helper to get expiry display
     const getExpiryDisplay = (student) => {
         if (!paymentRequired) {
