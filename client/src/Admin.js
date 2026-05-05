@@ -425,9 +425,7 @@ const Admin = () => {
                                             }}>
                                                 <td style={styles.tdName}>{s.name || 'Student'}</td>
                                                 <td>{s.email}</td>
-                                               <span style={{ ...styles.badge, background: status.bg }}>
-    {status.label}
-</span>
+                                               <td>{displayStatus(s)}</td>
 
                                                 <td style={styles.tdDate}>
                                                     {s.firstLoginDate ? new Date(s.firstLoginDate).toLocaleDateString() : 'Never'}
