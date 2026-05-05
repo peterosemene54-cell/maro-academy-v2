@@ -417,7 +417,7 @@ const Admin = () => {
                                 </thead>
                                 <tbody>
                                     {filteredStudents.map(s => {
-                                        const status = getStudentStatus(s);
+                                       
                                         return (
                                             <tr key={s._id} style={{
                                                 ...styles.tableRow,
