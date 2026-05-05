@@ -218,29 +218,6 @@ const Admin = () => {
             alert("System Update Failed"); 
         }
     };
-        // =============================================
-    // 🎨 UI HELPER: EXPIRED STATUS LOGIC
-    // =============================================
-    const displayStatus = (student) => {
-        // If we are in FREE MODE, everyone is just "ACTIVE"
-        if (!paymentRequired) return <span style={{color: '#00ff00'}}>FREE ACCESS</span>;
-
-        const now = new Date();
-        const expiry = student.expiryDate ? new Date(student.expiryDate) : null;
-
-        // Force UI to show EXPIRED in Orange if the time is up
-        if (student.isPaid && expiry && now > expiry) {
-            return <span style={{color: '#ffa500', fontWeight: 'bold'}}>EXPIRED</span>;
-        }
-
-        // Standard colors: Green for Approved, Red for Locked
-        return (
-            <span style={{color: student.isPaid ? '#00ff00' : '#ff4d4d', fontWeight: 'bold'}}>
-                {student.isPaid ? 'APPROVED' : 'LOCKED'}
-            </span>
-        );
-    };
-
 
     const handleVideoUpload = async (e) => {
         e.preventDefault();
@@ -260,7 +237,20 @@ const Admin = () => {
     };
 
     // ✅ Helper to get display status for table
-    
+    const getStudentStatus = (student) => {
+        if (!paymentRequired) {
+            return { label: 'FREE ACCESS', bg: '#e8f4fd', color: '#007bff' };
+        }
+        if (student.isPaid) {
+            // Check if expired (in paid mode)
+            if (student.expiryDate && new Date(student.expiryDate) < new Date()) {
+                return { label: 'EXPIRED', bg: '#fff3cd', color: '#856404' };
+            }
+            return { label: 'APPROVED', bg: '#eaffea', color: '#28a745' };
+        }
+        return { label: 'LOCKED', bg: '#ffeaea', color: '#ff4d4d' };
+    };
+
     // ✅ Helper to get expiry display
     const getExpiryDisplay = (student) => {
         if (!paymentRequired) {
@@ -404,7 +394,7 @@ const Admin = () => {
                                 </thead>
                                 <tbody>
                                     {filteredStudents.map(s => {
-                                       
+                                        const status = getStudentStatus(s);
                                         return (
                                             <tr key={s._id} style={{
                                                 ...styles.tableRow,
@@ -412,8 +402,15 @@ const Admin = () => {
                                             }}>
                                                 <td style={styles.tdName}>{s.name || 'Student'}</td>
                                                 <td>{s.email}</td>
-                                               <td>{displayStatus(s)}</td>
-
+                                                <td>
+                                                    <span style={{
+                                                        ...styles.badge, 
+                                                        background: status.bg,
+                                                        color: status.color
+                                                    }}>
+                                                        {status.label}
+                                                    </span>
+                                                </td>
                                                 <td style={styles.tdDate}>
                                                     {s.firstLoginDate ? new Date(s.firstLoginDate).toLocaleDateString() : 'Never'}
                                                 </td>
