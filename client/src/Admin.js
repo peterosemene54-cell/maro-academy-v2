@@ -260,6 +260,7 @@ const Admin = () => {
 
     // ✅ Helper to get expiry display
     const getExpiryDisplay = (student) => {
+        void tick; // ✅ Forces live countdown every second
         if (!paymentRequired) {
             return '∞ FOREVER';
         }
