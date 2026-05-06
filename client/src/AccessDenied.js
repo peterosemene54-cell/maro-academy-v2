@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const AccessDenied = () => {
-    const navigate = useNavigate();
+   
 
     // 🔍 CHECK WHY THEY ARE HERE
     const location = useLocation();
