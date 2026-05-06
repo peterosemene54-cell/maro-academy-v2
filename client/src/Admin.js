@@ -27,6 +27,7 @@ const Admin = () => {
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [tick, setTick] = useState(0);
     const [uploading, setUploading] = useState(false);
     const [sessionWarning, setSessionWarning] = useState(false);
