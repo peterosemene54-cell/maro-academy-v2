@@ -27,7 +27,7 @@ const Admin = () => {
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [tick, setTick] = useState(0);
     const [uploading, setUploading] = useState(false);
     const [sessionWarning, setSessionWarning] = useState(false);
     
@@ -68,14 +68,11 @@ const Admin = () => {
         }
     }, []);
 
+    // ⏱️ LIVE COUNTDOWN TICKER
     useEffect(() => {
-        if (isAuthenticated) {
-            fetchStudents();
-            fetchSettings();
-            const ticker = setInterval(fetchStudents, 3000);
-            return () => clearInterval(ticker);
-        }
-    }, [isAuthenticated, fetchStudents, fetchSettings]);
+        const timer = setInterval(() => setTick(t => t + 1), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     // =============================================
     // ⚡ INSTANT EXPIRY FLASH SOCKET
@@ -253,6 +250,7 @@ const Admin = () => {
 
     // ✅ Helper to get expiry display
     const getExpiryDisplay = (student) => {
+        void tick; // ✅ Forces live countdown every second
         if (!paymentRequired) {
             return '∞ FOREVER';
         }
