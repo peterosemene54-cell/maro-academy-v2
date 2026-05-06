@@ -6,7 +6,8 @@ const AccessDenied = () => {
 
     // 🔍 CHECK WHY THEY ARE HERE
     const location = useLocation();
-    const isExpired = location.state?.expired;
+    const queryParams = new URLSearchParams(location.search);
+    const isExpired = location.state?.expired || queryParams.get('expired') === 'true';
 
     return (
         <div style={{ 
@@ -55,7 +56,7 @@ const AccessDenied = () => {
                                 <li>1. Transfer the renewal fee to <b>Moniepoint: [YOUR ACCOUNT NUMBER]</b></li>
                                 <li>2. Take a screenshot of the receipt.</li>
                                 <li>3. Send it to Oga on WhatsApp for instant renewal.</li>
-                                <li>4. Your 30 days restarts immediately after approval! ✅</li>
+                                <li>4. Your access restarts immediately after approval! ✅</li>
                             </>
                         ) : (
                             <>
@@ -69,7 +70,7 @@ const AccessDenied = () => {
 
                 <div style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     <button 
-                        onClick={() => window.location.href = "https://wa.me"}
+                       onClick={() => window.location.href = "https://wa.me/2349042871790"}
                         style={{ 
                             background: '#28a745', 
                             color: 'white', 
