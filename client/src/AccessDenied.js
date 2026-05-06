@@ -88,7 +88,7 @@ const AccessDenied = () => {
                     </button>
 
                     <button 
-                        onClick={() => navigate('/login')}
+                        onClick={() => window.location.href = '/login'}
                         style={{ 
                             background: 'transparent', 
                             color: '#666', 

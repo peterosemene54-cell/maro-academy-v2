@@ -25,7 +25,7 @@ const VideoVault = ({ user }) => {
   const handleInstantKick = (reason) => {
     localStorage.removeItem('maroToken');
     localStorage.removeItem('maroUser');
-  window.location.replace(`/access-denied?expired=true`);
+    window.location.replace(`/access-denied?expired=true`);
   };
 
   // ===============================
