@@ -33,11 +33,11 @@ function App() {
     const [systemNotice, setSystemNotice] = useState("");
     const [socketConnected, setSocketConnected] = useState(false);
 
-    const handleKick = useCallback((reason = "security_violation") => {
+ const handleKick = useCallback((reason = "security_violation") => {
         localStorage.removeItem('maroUser');
         localStorage.removeItem('maroToken'); 
         setUser(null);
-        window.location.href = `/access-denied?reason=${reason}`;
+        window.location.href = `/access-denied?expired=true`;
     }, []);
 
     // WEBSOCKET
