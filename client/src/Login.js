@@ -72,14 +72,7 @@ const Login = ({ setUser }) => {
             // ==========================================
             // Ask the backend: "Are we in Free Mode or Paid Mode?"
            
-            
-
-           
-            // If Free Mode OR (Paid Mode + Approved), they pass through below!
-            // ==========================================
-
-            // 4. Local State & Storage Update
-         // ✅ CHECK IF SUBSCRIPTION EXPIRED BEFORE LETTING THEM IN
+            // ✅ CHECK IF SUBSCRIPTION EXPIRED BEFORE LETTING THEM IN
             if (!userData.isPaid && userData.expiryDate && userData.hasLoggedIn) {
                 const expiry = new Date(userData.expiryDate);
                 if (new Date() > expiry) {
@@ -95,7 +88,6 @@ const Login = ({ setUser }) => {
             // 5. Log Success & Divert to Vault
             console.log("🛡️ CITADEL ACCESS GRANTED - TOKEN SECURED");
             navigate("/video-vault");
-         
 
         } catch (error) {
             console.error("Login Security Breach:", error);
